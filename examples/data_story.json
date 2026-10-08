@@ -1,0 +1,16 @@
+{
+  "spec_version": 1,
+  "id": "data_story",
+  "kind": "reel",
+  "format": "reel",
+  "theme": "signal",
+  "scenes": [
+    {"type": "slam", "dur": 3.0, "words": ["1 IN 7", "IS A LOT"], "hold": 1.0, "say": "One in seven. That is a lot."},
+    {"type": "grid", "dur": 6.5, "total": 140, "hit": 20, "title": "Out of every 140 orders", "label_total": "orders checked", "label_hit": "arrived late", "source": "Example data, illustrative", "say": "We checked 140 orders. Twenty arrived late."},
+    {"type": "bars", "dur": 5.5, "title": "Late orders by region", "items": [
+      {"label": "North", "value": 9, "suffix": "%"}, {"label": "South", "value": 21, "suffix": "%", "accent": true}, {"label": "East", "value": 12, "suffix": "%"}],
+     "note": "Illustrative numbers for the example.", "source": "Example data"},
+    {"type": "endcard", "dur": 3.5, "brand": "Your Brand", "tagline": "Replace this with your line.", "url": "yourdomain.com", "ask": "Follow for the next one."}
+  ],
+  "post": {"bloom": 0.25, "grain": 0.4}
+}

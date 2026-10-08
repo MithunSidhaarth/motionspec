@@ -1,0 +1,19 @@
+{
+  "spec_version": 1,
+  "id": "explainer",
+  "kind": "explainer",
+  "format": "landscape",
+  "theme": "midnight",
+  "scenes": [
+    {"type": "title", "dur": 3.5, "kicker": "A SHORT EXPLAINER", "lines": ["How a spec becomes", "a video."], "accent": 1, "say": "How does a spec become a video?"},
+    {"type": "steps", "dur": 8.0, "title": "Three steps", "steps": [
+      {"head": "Describe it", "sub": "Scenes, text and numbers in a JSON file."},
+      {"head": "Check it", "sub": "Validation finds mistakes before rendering."},
+      {"head": "Render it", "sub": "Every frame is drawn from the spec, in parallel."}]},
+    {"type": "chart", "dur": 7.0, "title": "Render time by cores", "labels": ["1", "2", "4", "8"], "series": [{"label": "seconds", "values": [96, 51, 28, 16]}], "note": "Illustrative numbers.", "source": "Example data"},
+    {"type": "timeline", "dur": 7.0, "title": "From idea to video", "events": [{"when": "Minute 0", "what": "Write the brief"}, {"when": "Minute 5", "what": "Fill the spec"}, {"when": "Minute 8", "what": "Preview"}, {"when": "Minute 12", "what": "Render and publish"}]},
+    {"type": "code", "dur": 6.0, "title": "Two commands", "lines": ["$ motionspec preview spec.json", "$ motionspec render spec.json -o out.mp4", "frames: 360 / 360   done"], "highlight": [2]},
+    {"type": "quote", "dur": 5.0, "text": "If the picture is a function of time, every edit is a diff.", "who": "Design note"},
+    {"type": "endcard", "dur": 4.0, "brand": "motionspec", "tagline": "Describe the video. Get the MP4.", "button": "Read the docs", "url": "example.com/docs"}
+  ]
+}

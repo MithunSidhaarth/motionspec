@@ -1,0 +1,13 @@
+{
+  "spec_version": 1,
+  "id": "product_ad",
+  "kind": "ad",
+  "format": "portrait",
+  "theme": "paper",
+  "scenes": [
+    {"type": "strike", "dur": 3.5, "kicker": "MYTH VS FACT", "wrong": "Reports take all week", "right": "Reports take ten minutes"},
+    {"type": "image", "dur": 5.0, "src": "assets/dashboard.png", "caption": "Everything in one dashboard", "zoom": 1.15, "pan": [0.2, 0.3, 0.7, 0.6], "camera": {"zoom": [1.0, 1.04], "drift": 0.3}},
+    {"type": "compare", "dur": 5.5, "title": "Before and after", "left": {"title": "Before", "items": ["Copy and paste", "Late nights", "Errors"]}, "right": {"title": "With the tool", "items": ["One click", "Home on time", "Checked for you"]}},
+    {"type": "endcard", "dur": 4.0, "brand": "Your Product", "tagline": "Reports without the busywork.", "button": "Start free", "url": "yourproduct.com"}
+  ]
+}

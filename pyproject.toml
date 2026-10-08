@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "motionspec"
+version = "0.1.0"
+description = "Describe a video in JSON. Get an MP4. Every frame is a pure function of time."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = ["pillow>=10.1", "numpy>=1.24"]
+license = { text = "Proprietary - all rights reserved" }
+
+[project.scripts]
+motionspec = "motionspec.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["motionspec*"]
+
+[tool.setuptools.package-data]
+motionspec = ["fonts/*"]
