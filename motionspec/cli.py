@@ -71,9 +71,12 @@ def cmd_validate(a):
 def cmd_lint(a):
     from .policy import lint, load_policy
     from .render import load_spec
-    spec = load_spec(a.spec); pol = load_policy(a.policy or (spec.get("policy") and os.path.join(os.path.dirname(os.path.abspath(a.spec)), spec["policy"])))
-    errs, warns = lint(spec, pol, os.path.dirname(os.path.abspath(a.policy)) if a.policy else os.path.dirname(os.path.abspath(a.spec)))
-    [print("warn ", w) for w in warns]; [print("error", e) for e in errs]; print("ok" if not errs else f"{len(errs)} error(s)"); return 1 if errs else 0
+    spec = load_spec(a.spec); spec_dir = os.path.dirname(os.path.abspath(a.spec))
+    pol_path = a.policy or (os.path.join(spec_dir, spec["policy"]) if spec.get("policy") else None)
+    pol = load_policy(pol_path)
+    errs, warns = lint(spec, pol, os.path.dirname(os.path.abspath(pol_path)) if pol_path else spec_dir)
+    [print("warn ", w) for w in warns]; [print("error", e) for e in errs]
+    print("ok" if not errs else f"{len(errs)} error(s)"); return 1 if errs else 0
 
 
 def cmd_scenes(a):
@@ -186,7 +189,7 @@ def main(argv=None):
     from .theme import ThemeError
     a = build_parser().parse_args(argv)
     try: return a.fn(a)
-    except (SpecError, RenderError, PathError, ThemeError, RuntimeError) as e:
+    except (SpecError, RenderError, PathError, ThemeError, RuntimeError, OSError, json.JSONDecodeError) as e:
         print(f"error: {e}", file=sys.stderr); return 1
     except KeyboardInterrupt:
         print("\ncancelled", file=sys.stderr); return 130

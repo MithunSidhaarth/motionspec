@@ -112,6 +112,30 @@ class Policy(unittest.TestCase):
         text = "\n".join(errs); self.assertIn("banned", text); self.assertIn("97", text); self.assertIn("must include", text)
 
 
+class CliLint(unittest.TestCase):
+    def run_cli(self, *a):
+        return subprocess.run([sys.executable, "-m", "motionspec", *a], cwd=ROOT, capture_output=True, text=True)
+
+    def test_policy_facts_resolve_next_to_the_policy_not_the_spec(self):
+        with tempfile.TemporaryDirectory() as d:
+            os.makedirs(os.path.join(d, "specs"))
+            with open(os.path.join(d, "facts.json"), "w") as f: json.dump({"facts": [{"id": "a", "numbers": ["14"]}]}, f)
+            with open(os.path.join(d, "policy.json"), "w") as f: json.dump({"facts_file": "facts.json"}, f)
+            with open(os.path.join(d, "specs", "s.json"), "w") as f:
+                json.dump({"policy": "../policy.json", "facts": ["a"], "scenes": [{"type": "title", "dur": 3, "lines": ["14 of them"]}]}, f)
+            r = self.run_cli("lint", os.path.join(d, "specs", "s.json")); self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+
+    def test_missing_files_give_a_clean_error_not_a_traceback(self):
+        r = self.run_cli("lint", "does-not-exist.json"); self.assertNotEqual(r.returncode, 0); self.assertNotIn("Traceback", r.stderr)
+
+    def test_restricted_fact_needs_approval(self):
+        s = spec(facts=["a"]); fp = {"facts": [{"id": "a", "numbers": [], "restricted": True}]}
+        with tempfile.TemporaryDirectory() as d:
+            with open(os.path.join(d, "f.json"), "w") as fh: json.dump(fp, fh)
+            self.assertTrue(any("restricted" in e for e in policy.lint(s, {"facts_file": "f.json"}, d)[0]))
+            s["approved_facts"] = ["a"]; self.assertEqual(policy.lint(s, {"facts_file": "f.json"}, d)[0], [])
+
+
 class Captions(unittest.TestCase):
     def test_build_and_srt(self):
         caps = captions.build([{"dur": 4, "say": "one two three four five six seven eight nine"}], max_words=5)

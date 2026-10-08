@@ -6,7 +6,7 @@ from .layout import FORMATS
 from .scenes import COMMON, REGISTRY, load_builtin
 
 TOP = {"spec_version": (int, False), "id": (str, False), "kind": (str, False), "format": (str, False), "theme": ((str, dict), False),
-       "scenes": (list, True), "captions": (list, False), "voiceover": (str, False), "music": ((str, dict), False), "facts": (list, False),
+       "scenes": (list, True), "captions": (list, False), "voiceover": (str, False), "music": ((str, dict), False), "facts": (list, False), "approved_facts": (list, False),
        "policy": (str, False), "autotime": (bool, False), "blur": (int, False), "post": (dict, False), "fps": (int, False),
        "sfx": (bool, False), "comment": (str, False)}
 KINDS = ("reel", "ad", "explainer", "demo", "general")

@@ -4,7 +4,8 @@ policy.json example:
 {
   "banned": ["guaranteed", "best in the world"],          # whole-word, case-insensitive, checked in every on-screen string
   "required_any": ["not proof", "screening indicator"],   # at least one must appear on screen
-  "facts_file": "facts.json",                             # numbers on screen must appear in the cited facts
+  "facts_file": "facts.json",                             # numbers on screen must appear in the cited facts;
+                                                          # a fact with "restricted": true also needs spec.approved_facts
   "numbers_free_below": 10,                               # small counters (steps, list indexes) need no source
   "kinds": {"reel": [15, 45], "ad": [6, 30]},             # allowed length per spec.kind
   "max_caption_words": 9, "hook_max_seconds": 3.5, "require_last": "endcard"
@@ -51,7 +52,10 @@ def lint(spec, policy=None, base_dir="."):
         allowed = {str(i) for i in range(0, int(p.get("numbers_free_below", 10)) + 1)}
         for f in used:
             if f not in facts: errs.append(f"facts: unknown id '{f}'")
-            else: allowed |= {str(x) for x in facts[f].get("numbers", [])}
+            else:
+                allowed |= {str(x) for x in facts[f].get("numbers", [])}
+                if facts[f].get("restricted") and f not in spec.get("approved_facts", []):
+                    errs.append(f"facts: '{f}' is restricted ({facts[f].get('why', 'needs sign-off')}); add it to \"approved_facts\" only after review")
         for label, s in strings:
             for n in re.findall(r"\d[\d,\.]*\d|\d", s):
                 n = n.rstrip(".,")

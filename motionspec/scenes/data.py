@@ -103,7 +103,7 @@ def _spread(total, hit):
        desc="Proportion grid: `total` dots, `hit` of them light up. Shows 'x of y' at a glance.")
 def grid(c, t, s):
     total = max(1, min(int(s["total"]), 20000)); hit = max(0, min(int(s["hit"]), total)); wide = c.wide
-    area_w, area_h = (c.W * 0.52, c.H * 0.7) if wide else (c.W * 0.86, c.H * 0.36)
+    area_w, area_h = (c.W * 0.52, c.H * 0.7) if wide else (c.W * 0.86, c.H * 0.26)
     cols = s.get("cols") or max(1, min(total, round(math.sqrt(total * area_w / area_h))))
     rows = -(-total // cols); gap = min(area_w / cols, area_h / rows, c.S(64)); r = gap * 0.34
     gx0 = c.W * 0.06 + gap / 2 if wide else c.cx - (cols - 1) * gap / 2
@@ -119,8 +119,8 @@ def grid(c, t, s):
     Y = (lambda tall, frac: c.H * frac) if wide else (lambda tall, frac: c.Y(tall))
     p0 = out_cubic(prog(t, 0.1, .5))
     c.text(tx, Y(280, .16), c.fit(s.get("title", ""), "bold", 62, colw), "bold", 62, "fg", p0, dy=(1 - p0) * c.S(40))
-    c.text(tx, Y(500, .38), str(int(round(hit * lit_k))), "bold", 200, "accent", prog(t, 1.9, .3))
-    c.text(tx, Y(700, .62), c.fit(f'{total:,} {s.get("label_total", "")}', "mono", 30, 0.3 if wide else 0.86), "mono", 30, "muted", prog(t, 0.2, .5))
+    c.text(tx, Y(440, .38), str(int(round(hit * lit_k))), "bold", 200, "accent", prog(t, 1.9, .3))
+    c.text(tx, Y(630, .62), c.fit(f'{total:,} {s.get("label_total", "")}', "mono", 30, 0.3 if wide else 0.86), "mono", 30, "muted", prog(t, 0.2, .5))
     c.text(tx, Y(1290, .76), c.fit(s.get("label_hit", ""), "bold", 56, colw), "bold", 56, "fg", prog(t, 3.3, .5))
     _source(c, s, t)
 
