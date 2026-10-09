@@ -131,6 +131,26 @@ def cmd_serve(a):
     serve(a.spec, a.port, a.format, tuple(a.plugins or ()), a.root, a.allow_abs_paths, not a.no_open); return 0
 
 
+def cmd_voice(a):
+    from . import voice
+    from .render import load_spec
+    spec = load_spec(a.spec); base = os.path.dirname(os.path.abspath(a.spec))
+    audio, timing = voice.synthesize(spec, os.path.join(base, "assets"), a.provider, a.force, a.file)
+    rel = os.path.relpath(audio, base).replace(os.sep, "/"); print(f"narration: {rel}" + (f"  ({timing['total']:.1f}s, {len(timing['scenes'])} scenes)" if timing else ""))
+    if a.write:
+        spec["voiceover"] = rel; spec["align"] = True; spec.setdefault("captions_style", "karaoke")
+        json.dump(spec, open(a.spec, "w", encoding="utf-8"), indent=2); print(f"updated {a.spec}: voiceover, align, captions_style")
+    else: print(f'next: set "voiceover": "{rel}" and "align": true in the spec (or re-run with --write)')
+    return 0
+
+
+def cmd_analyze(a):
+    from .analyze import analyze, format_report
+    m, rows = analyze(a.spec, a.format)
+    print(json.dumps({"metrics": m, "checks": [dict(zip(("status", "label", "value", "target", "advice"), r)) for r in rows]}, indent=1) if a.json else format_report(m, rows))
+    return 1 if any(r[0] == "fail" for r in rows) else 0
+
+
 def cmd_gallery(a):
     from .render import render_video
     ex = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "examples")
@@ -192,6 +212,10 @@ def build_parser():
     al = sub.add_parser("align", help="word timings for a script against a voiceover"); al.add_argument("audio"); al.add_argument("script", help="text or a .txt file")
     al.add_argument("--engine", choices=["auto", "heuristic", "whisper"], default="auto"); al.set_defaults(fn=cmd_align)
     sv = spec_cmd("serve", cmd_serve, "live preview in the browser (scrub, play, switch format; reloads on save)"); sv.add_argument("--port", type=int, default=8765); sv.add_argument("--no-open", action="store_true")
+    vo = sub.add_parser("voice", help="make narration from the scenes' say lines (ElevenLabs, local voice, or your own recording)"); vo.add_argument("spec")
+    vo.add_argument("--provider", choices=["elevenlabs", "local", "file"]); vo.add_argument("--file", help="your own recording (with --provider file)")
+    vo.add_argument("--write", action="store_true", help="write voiceover/align/captions_style into the spec"); vo.add_argument("--force", action="store_true"); vo.set_defaults(fn=cmd_voice)
+    an = sub.add_parser("analyze", help="measure motion, sound, hook, rhythm and variety, and say what to fix"); an.add_argument("spec"); an.add_argument("--format"); an.add_argument("--json", action="store_true"); an.set_defaults(fn=cmd_analyze)
     g = sub.add_parser("gallery", help="render every example"); g.add_argument("-o", "--out", default="gallery"); g.set_defaults(fn=cmd_gallery)
     d = sub.add_parser("doctor", help="check your setup and explain any problem"); d.set_defaults(fn=cmd_doctor)
     return p

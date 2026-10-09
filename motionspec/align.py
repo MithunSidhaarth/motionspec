@@ -38,10 +38,21 @@ def _sentence_sizes(words):
     return sizes
 
 
+def _merge_to(segs, n):
+    """Merge the pairs of adjacent speech segments separated by the shortest pauses until exactly n remain (pauses inside a sentence
+    are shorter than pauses between sentences)."""
+    segs = list(segs)
+    while len(segs) > n > 0:
+        gaps = [segs[i + 1][0] - segs[i][1] for i in range(len(segs) - 1)]; k = gaps.index(min(gaps))
+        segs[k:k + 2] = [(segs[k][0], segs[k + 1][1])]
+    return segs
+
+
 def heuristic(path, words):
     """Place `words` on the audio. If the script has as many sentences as the audio has speech segments, each sentence snaps to
     its own segment (words weighted by length inside it); otherwise words are spread over all speech, weighted by length."""
     segs = speech_segments(path); sizes = _sentence_sizes(words)
+    if len(sizes) > 1 and len(segs) > len(sizes): segs = _merge_to(segs, len(sizes))
     if len(sizes) == len(segs) and len(segs) > 1:
         out, i = [], 0
         for (a, b), n in zip(segs, sizes):

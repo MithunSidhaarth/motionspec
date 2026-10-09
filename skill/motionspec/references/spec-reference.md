@@ -2,9 +2,9 @@
 
 Generated from the scene registry (`motionspec scenes`). `*` = required.
 
-Top-level keys: spec_version, id, kind (reel|ad|explainer|demo|general), format, theme, look (clean|soft|film|neon), motion (none|calm|lively), backdrop (orbs|grid|dots|none), transition (fade|cut|push|wipe|zoom), scenes, captions [{t0,t1,text}], captions_style (plain|karaoke), voiceover, music ("auto" default | "off" | path | {mood, db}), align, autotime, cues [{t, sound}], facts, approved_facts, policy, blur, post {bloom, grain, aberration}, fps, sfx.
+Top-level keys: spec_version, id, kind (reel|ad|explainer|demo|general), format, theme, look (clean|soft|film|neon|cinema), motion (none|calm|lively), backdrop (orbs|grid|dots|none), transition (fade|cut|push|wipe|zoom), scenes, captions [{t0,t1,text}], captions_style (plain|karaoke), say_captions, voice {provider, voice_id, model, gap}, voiceover, music ("auto" default | "off" | path | {mood, db}), beat_sync, align, autotime, cues [{t, sound}], sfx_density (rich|light|off), punch, facts, approved_facts, policy, blur, post {bloom, halation, tone, grain, aberration}, fps, sfx.
 
-Every scene also accepts: `camera` {zoom:[from,to], pan:[dx0,dy0,dx1,dy1], drift:0..1}, `transition`, `backdrop`, `say`, `bg`, `gradient`.
+Every scene also accepts: `camera` {zoom:[from,to], pan:[dx0,dy0,dx1,dy1], drift:0..1}, `transition`, `backdrop`, `invert` (palette flip), `say`, `bg`, `gradient`.
 
 ```
 
@@ -14,7 +14,7 @@ bars: Horizontal bars. items: {label, value, suffix?, decimals?, accent?}.
     items*: list
     note: str
 
-bullets: List that builds item by item. Items are strings or {head, sub}.
+bullets: List that builds item by item, each on the spoken word when narrated. Items are strings or {head, sub}.
     title: str
     items*: list
     numbered: bool
@@ -63,6 +63,12 @@ endcard: End card: theme logo, brand name, tagline, optional pulsing button, url
     ask: str
     loop: bool
 
+flow: A process as nodes joined by arrows, with packets travelling through it. `nodes`: list of labels (each appears on its spoken word). Use for pipelines, workflows, 'then it does X'.
+    title: str
+    nodes*: list
+    loop: bool
+    caption: str
+
 grid: Proportion grid: `total` dots, `hit` of them light up. Shows 'x of y' at a glance.
     source: str
     total*: int
@@ -71,6 +77,7 @@ grid: Proportion grid: `total` dots, `hit` of them light up. Shows 'x of y' at a
     label_total: str
     label_hit: str
     cols: int
+    style: str
 
 image: Screenshot or photo with a slow zoom (Ken Burns). `pan` [x0,y0,x1,y1] in 0..1 moves the crop; `fit`: card (default) | full.
     src*: str
@@ -101,7 +108,7 @@ slam: Full-frame word slams, one per beat, on an inverted (accent) field. `words
     size: int/float
     hold: int/float
 
-stat: One big number that counts up, with a title above and a caption below.
+stat: One big number that counts up (or rolls like an odometer: style odometer), with a title above and a caption below. `when`: a spoken word to start on.
     source: str
     value*: int/float
     prefix: str
@@ -111,6 +118,8 @@ stat: One big number that counts up, with a title above and a caption below.
     title: str
     caption: str
     size: int/float
+    style: str
+    when: str
 
 steps: Numbered process. Same as bullets with numbers; `steps` are strings or {head, sub}.
     title: str
@@ -126,7 +135,7 @@ timeline: Milestones along a line. events: {when, what}. Horizontal on wide form
     title: str
     events*: list
 
-title: Big headline. `style`: lines (default) | words (each word springs in) | letters (kinetic). Use *asterisks* to colour a word with the accent.
+title: Big headline. `style`: lines (default) | words (each word stretches and springs in) | letters (kinetic). *asterisks* colour words with the accent; `underline` draws a line under it. With narration each word appears when it is spoken.
     lines*: list
     accent: int
     size: int/float
@@ -134,7 +143,8 @@ title: Big headline. `style`: lines (default) | words (each word springs in) | l
     subtitle: str
     step: int/float
     style: str
+    underline: bool
 
-Common to all scenes: type, dur, bg, gradient, say, id, camera, transition, comment, backdrop   (* = required)
+Common to all scenes: type, dur, bg, gradient, say, id, camera, transition, comment, backdrop, invert   (* = required)
 
 ```

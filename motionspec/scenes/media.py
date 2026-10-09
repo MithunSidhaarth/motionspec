@@ -33,7 +33,7 @@ def _frame_box(c, full):
 
 @scene("image", fields={"src": (str, True), "caption": (str, False), "zoom": ((int, float), False), "zoom_dur": ((int, float), False),
                         "pan": (list, False), "fit": (str, False)},
-       cues=lambda s: [(0.05, "whoosh")],
+       cues=lambda s: [(0.05, "whoosh"), (0.5, "pop", -9)],
        desc="Screenshot or photo with a slow zoom (Ken Burns). `pan` [x0,y0,x1,y1] in 0..1 moves the crop; `fit`: card (default) | full.")
 def image(c, t, s):
     src = _open(paths.resolve(s["src"], "image.src"))
@@ -108,7 +108,7 @@ def code(c, t, s):
 
 @scene("device", fields={"src": (str, True), "kind": (str, False), "url": (str, False), "caption": (str, False),
                          "zoom": ((int, float), False), "pan": (list, False)},
-       cues=lambda s: [(0.1, "swish")],
+       cues=lambda s: [(0.05, "swish"), (0.6, "click"), (0.75, "pop", -9)],
        desc="Screenshot inside a browser window (`kind`: browser, default on wide) or phone (`kind`: phone, default on tall) frame, with a slow push-in.")
 def device(c, t, s):
     src = _open(paths.resolve(s["src"], "device.src")); kind = s.get("kind", "browser" if c.wide else "phone")

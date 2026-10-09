@@ -76,7 +76,7 @@ class Canvas:
         return rgb(getattr(self.theme, c)) if c in _COLORS else rgb(c)
 
     # ---- text
-    def font(self, kind, size): return self.theme.font(kind, size)
+    def font(self, kind, size, width=None): return self.theme.font(kind, size, width)
 
     def wrap(self, s, kind, size, max_w):
         """Greedy word wrap measured with the real font so it re-flows on any format. `size` is in pixels."""
@@ -91,11 +91,11 @@ class Canvas:
         return m.width - 8, m.height - 8
 
     def text(self, x, y, s, kind="bold", size=64, color="fg", alpha=1.0, anchor="ma", dy=0, spacing=10,
-             shadow=0.0, scale=1.0, tracking=0.0, reveal=False):
+             shadow=0.0, scale=1.0, tracking=0.0, reveal=False, width=None):
         """Draw text. `size`/`spacing`/`dy` are design-sheet units except dy which is pixels. `shadow` 0..1 adds a soft drop shadow.
         Sub-pixel positions are honoured by resampling the cached mask, so slow slides do not jitter."""
         if alpha <= 0.004 or not s: return
-        s = str(s); f = self.font(kind, self.S(size) * scale); sp = int(self.S(spacing))
+        s = str(s); f = self.font(kind, self.S(size) * scale, width); sp = int(self.S(spacing))
         align = "center" if anchor[0] == "m" else ("right" if anchor[0] == "r" else "left")
         m, (ox, oy) = _text_mask(s, f, sp, anchor, align)
         if reveal and dy > 0:                       # text rises out of an invisible line at the bottom of its final box
@@ -140,7 +140,7 @@ class Canvas:
         self.img.paste(Image.new("RGB", m.size, self.col(color)), (cx0, cy0), m)
 
     def rect(self, box, color="card", alpha=1.0, radius=0):
-        if box[2] <= box[0] or box[3] <= box[1]: return
+        if box[2] - box[0] < 1 or box[3] - box[1] < 1: return             # under a pixel: invisible (and would be an invalid shape)
         r = min(radius, (box[2] - box[0]) / 2, (box[3] - box[1]) / 2)
         self._shape(box, lambda d, ox, oy: d.rounded_rectangle(
             ((box[0] - ox) * SS, (box[1] - oy) * SS, (box[2] - ox) * SS - 1, (box[3] - oy) * SS - 1), radius=r * SS, fill=255), color, alpha)
@@ -176,6 +176,7 @@ class Canvas:
 
     def shadow_rect(self, box, radius=0, blur=24, alpha=0.5, dy=12):
         """Soft drop shadow under a rounded rectangle (call before drawing the rectangle)."""
+        if box[2] - box[0] < 1 or box[3] - box[1] < 1: return
         b = max(2, int(blur)); pad = b * 2; x0, y0, x1, y1 = [int(v) for v in box]
         w, h = x1 - x0 + pad * 2, y1 - y0 + pad * 2
         if w <= 0 or h <= 0: return

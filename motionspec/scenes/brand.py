@@ -5,12 +5,15 @@ from . import scene
 
 @scene("endcard", fields={"brand": (str, False), "tagline": (str, False), "url": (str, False), "button": (str, False),
                           "ask": (str, False), "loop": (bool, False)},
-       cues=lambda s: [(0.1, "rise"), (1.2, "chime")],
+       cues=lambda s: [(0.05, "rise"), (0.5, "pop", -8), (1.15, "click"), (1.2, "chime")],
        desc="End card: theme logo, brand name, tagline, optional pulsing button, url. Text defaults come from the theme.")
 def endcard(c, t, s):
     th = c.theme; brand = s.get("brand", th.brand); tagline = s.get("tagline", th.tagline); url = s.get("url", th.url)
     p = spring(prog(t, 0.1, 0.9)); cy = c.H * (0.33 if not c.wide else 0.30); y = cy
     c.glow(c.cx, cy, c.S(420), "accent", 0.14 * min(1, p * 2))
+    for ring in range(2):                                         # sonar rings keep a finished end card alive
+        k = ((t - 0.9 - ring * 1.1) * 0.55) % 1.0 if t > 0.9 + ring * 1.1 else None
+        if k is not None: c.arc(c.cx, cy, c.S(110) + c.S(300) * k, 0, 360, max(2, c.S(5)), "accent", 0.32 * (1 - k) ** 1.5)
     had_logo = c.logo(c.cx, cy, c.S(220) * max(p, 0.01), min(1, p * 2))
     if had_logo: y = cy + c.S(190)
     if brand:

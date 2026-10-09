@@ -156,6 +156,112 @@ class Align(unittest.TestCase):
         self.assertAlmostEqual(out[-1]["t1"], 6.0, delta=0.08)
 
 
+class VoiceLed(unittest.TestCase):
+    """Narration route, with a stand-in for the ElevenLabs call (tone length follows the word count) so no key or network is needed."""
+
+    def fake_tts(self, text, cfg):
+        n = len(text.split()); out = tempfile.mktemp(suffix=".mp3")
+        subprocess.run(["ffmpeg", "-v", "error", "-y", "-f", "lavfi", "-i", "sine=frequency=220:duration=%.2f" % (0.3 * n), "-q:a", "5", out], check=True)
+        return open(out, "rb").read()
+
+    def test_per_scene_narration_gives_exact_timing_and_synced_render(self):
+        from motionspec import voice
+        spec = {"format": "square", "align": True, "captions_style": "karaoke", "voice": {"provider": "elevenlabs", "voice_id": "x"},
+                "scenes": [{"type": "title", "dur": 2, "lines": ["Hello there"], "say": "Hello there"},
+                           {"type": "bullets", "dur": 2, "items": ["First thing", "Second thing"], "say": "Here is the first thing, then the second thing."},
+                           {"type": "endcard", "dur": 2}]}
+        old = voice._elevenlabs; voice._elevenlabs = self.fake_tts
+        try:
+            with tempfile.TemporaryDirectory() as d:
+                os.environ["ELEVENLABS_API_KEY"] = "test"
+                audio, data = voice.synthesize(spec, d)
+                self.assertEqual([e["scene"] for e in data["scenes"]], [0, 1])
+                self.assertLess(data["scenes"][0]["t1"], data["scenes"][1]["t0"])                 # a gap separates scenes
+                spec["voiceover"] = audio; sp = os.path.join(d, "s.json")
+                with open(sp, "w") as fh: json.dump(spec, fh)
+                P = Project(load_spec(sp), d)
+                self.assertIsNotNone(P.voice_segments); self.assertEqual(len(P.voice_segments), 2)
+                self.assertTrue(all("_words" in sc for _, _, sc in P.timeline[:2]))
+                self.assertGreaterEqual(P.timeline[1][2]["dur"], data["scenes"][1]["t1"] - data["scenes"][1]["t0"])   # never cut the speech short
+                from motionspec import sync
+                sc = P.timeline[1][2]; self.assertGreater(sync.find(sc, "second"), sync.find(sc, "first"))             # words found in spoken order
+                r = subprocess.run([sys.executable, "-m", "motionspec", "render", sp, "-o", os.path.join(d, "o.mp4"), "--jobs", "2"], cwd=ROOT, capture_output=True, text=True)
+                self.assertEqual(r.returncode, 0, r.stderr)
+        finally:
+            voice._elevenlabs = old; os.environ.pop("ELEVENLABS_API_KEY", None)
+
+    def test_missing_key_and_bad_provider_explain_themselves(self):
+        from motionspec import voice
+        os.environ.pop("ELEVENLABS_API_KEY", None)
+        with self.assertRaises(voice.VoiceError) as cm: voice._elevenlabs("hi", {"voice_id": "x"})
+        self.assertIn("ELEVENLABS_API_KEY", str(cm.exception))
+        with self.assertRaises(voice.VoiceError): voice.synthesize({"scenes": [{"type": "title", "dur": 2, "lines": ["x"], "say": "x"}]}, tempfile.gettempdir(), provider="nope")
+        with self.assertRaises(voice.VoiceError): voice.synthesize({"scenes": [{"type": "title", "dur": 2, "lines": ["x"]}]}, tempfile.gettempdir(), provider="local")
+
+
+class AlignRobust(unittest.TestCase):
+    def test_extra_pauses_inside_sentences_are_merged(self):
+        from motionspec import align
+        segs = [(0.0, 1.0), (1.2, 2.0), (3.0, 4.0), (4.1, 5.0), (6.2, 7.0)]            # 5 segments, 3 sentences: smallest gaps merge first
+        merged = align._merge_to(segs, 3)
+        self.assertEqual(len(merged), 3); self.assertEqual(merged[0], (0.0, 2.0)); self.assertEqual(merged[1], (3.0, 5.0)); self.assertEqual(merged[2], (6.2, 7.0))
+
+
+class Analyze(unittest.TestCase):
+    def test_analyzer_reports_every_check_and_flags_a_dead_scene(self):
+        from motionspec.analyze import analyze
+        sp = {"kind": "ad", "format": "square", "scenes": [{"type": "title", "dur": 3, "lines": ["Hi"]}, {"type": "note", "dur": 9, "text": "Static for a long while."}]}
+        with tempfile.TemporaryDirectory() as d:
+            p = os.path.join(d, "s.json")
+            with open(p, "w") as fh: json.dump(sp, fh)
+            m, rows = analyze(p)
+        self.assertGreaterEqual(len(rows), 9); self.assertTrue(any(r[0] != "ok" for r in rows))
+        self.assertIn("still_stretch", m); self.assertGreater(m["still_stretch"], 1.2)
+
+
+class Shapes(unittest.TestCase):
+    def test_sub_pixel_and_inverted_shapes_do_not_crash(self):
+        from motionspec.canvas import Canvas
+        from motionspec.layout import get_format
+        from motionspec.theme import load_theme
+        c = Canvas(get_format("square"), load_theme("midnight"))
+        for box in ((100, 100, 100.2, 140), (100, 100, 140, 100.3), (150, 150, 100, 100), (10, 10, 10, 10)):
+            c.rect(box, "accent", 1.0, radius=28); c.shadow_rect(box, 28, 24, 0.5)
+        c.dot(50, 50, 0.2); c.line([(5, 5), (5, 5)], 3)
+
+    def test_every_scene_survives_every_moment_of_its_build(self):
+        # the spring-in of nodes, bars and cards passes through tiny sizes: draw each gallery scene at many early times in two formats
+        P = Project(load_spec(os.path.join(EX, "scene_gallery.json")), EX, fmt="reel")
+        for k, (a, b, sc) in enumerate(P.timeline):
+            for dt in (0.0, 0.01, 0.03, 0.07, 0.15, 0.31, 0.62, 1.1):
+                P._scene_canvas(k, min(dt, sc["dur"] - 0.01), [])
+
+
+class Transitions(unittest.TestCase):
+    def test_push_transition_is_smooth_not_ghosted(self):
+        import numpy as np
+        sp = {"format": "square", "transition": "push", "scenes": [{"type": "title", "dur": 3, "lines": ["A"]}, {"type": "title", "dur": 3, "lines": ["B"]}]}
+        P = Project(sp, EX); a, b, _ = P.timeline[0]; mid = b - 0.25
+        f = np.asarray(P.frame_at(mid, int(mid * P.fps)).convert("L"), dtype=np.float32)
+        before = np.asarray(P.frame_at(b - 1.0, 0).convert("L"), dtype=np.float32)
+        self.assertGreater(float(np.abs(f - before).mean()), 1.0)                     # the push really moved the picture
+        rows = f.mean(axis=1); self.assertLess(float(np.abs(np.diff(rows)).max()), 60)  # and no hard edge from stacked copies
+
+
+class Cues(unittest.TestCase):
+    def test_every_scene_builds_valid_cues(self):
+        from motionspec import audio
+        P = Project(load_spec(os.path.join(EX, "scene_gallery.json")), EX)
+        cues = P.cues(); self.assertGreater(len(cues), 40)
+        for cue in cues: self.assertIn(cue[1], audio.SOUNDS); self.assertGreaterEqual(cue[0], 0)
+        self.assertEqual(cues, sorted(cues, key=lambda c: c[0]))
+
+    def test_cues_are_dense_by_default_and_can_be_thinned(self):
+        sp = load_spec(os.path.join(EX, "ad_skill.json")); rich = len(Project(sp, EX).cues())
+        sp["sfx_density"] = "light"; light = len(Project(sp, EX).cues()); sp["sfx_density"] = "off"
+        self.assertGreater(rich, light); self.assertEqual(Project(sp, EX).cues(), [])
+
+
 class Emphasis(unittest.TestCase):
     def test_emphasis_spans_words(self):
         from motionspec.scenes.text import _tokens

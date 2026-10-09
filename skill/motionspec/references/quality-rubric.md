@@ -12,3 +12,18 @@
 10. Distinctiveness: would it look the same from any other company? If so, change the visual.
 
 Check stills at the hook, the middle and the end card, then watch once muted and once with sound.
+
+## Measured targets (`motionspec analyze`)
+
+| Check | Target |
+|---|---|
+| Sound cues per second | 3 or more |
+| Longest stretch where the content does not change | 1.2 s or less |
+| First content motion | within 0.6 s |
+| Opening scene (ads, reels) | 3.6 s or shorter |
+| Average scene length | 2.2 to 6.5 s |
+| Distinct scene types per 10 s | 1.5 or more |
+| Text inside the safe area | no warnings |
+| Narrated video | words synced (`"align": true`) |
+
+Ambient motion (camera drift, backdrop) does not count: a video can have a lot of it and still feel static.

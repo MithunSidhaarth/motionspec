@@ -9,9 +9,9 @@ For solo founders and small teams who need explainers and ads in every screen sh
 <p align="center">
   <img src="docs/media/motionspec_ad.gif" width="560" alt="The ad motionspec made for itself">
 </p>
-<p align="center"><sub>This ad was made by motionspec, from <a href="examples/ad_motionspec.json">one JSON file</a>. <a href="docs/media/motionspec_ad_landscape.mp4">Full-quality MP4</a> · <a href="docs/media/motionspec_ad_reel.mp4">9:16 version</a></sub></p>
+<p align="center"><sub>This ad was made by motionspec, from <a href="examples/ad_motionspec.json">one JSON file</a>. <a href="docs/media/motionspec_ad_landscape.mp4">Full-quality MP4</a>. Other shapes: <code>motionspec render examples/ad_motionspec.json --format reel</code></sub></p>
 
-> **Status: v0.1, a solo project.** It works and is tested (32 tests), but it is young. **Licence: source-available, not open source yet.** You can read and try it; reuse terms are not set. See [Licence](#licence).
+> **Status: v0.1, a solo project.** It works and is tested (43 tests), but it is young. **Licence: source-available, not open source yet.** You can read and try it; reuse terms are not set. See [Licence](#licence).
 
 ---
 
@@ -19,8 +19,8 @@ For solo founders and small teams who need explainers and ads in every screen sh
 
 | | |
 |---|---|
-| **The skill's own ad**: "Ask Claude for a video" (4:5, 9:16, 16:9) | [4:5](docs/media/skill_ad_portrait.mp4) · [9:16](docs/media/skill_ad_reel.mp4) · [16:9](docs/media/skill_ad_landscape.mp4) · [spec](examples/ad_skill.json) |
-| **motionspec's ad** (the one above) | [16:9](docs/media/motionspec_ad_landscape.mp4) · [9:16](docs/media/motionspec_ad_reel.mp4) · [spec](examples/ad_motionspec.json) |
+| **The skill's own ad**: "Ask Claude for a video" | [16:9 video](docs/media/skill_ad_landscape.mp4) · [spec](examples/ad_skill.json) |
+| **motionspec's ad** (the one above) | [16:9 video](docs/media/motionspec_ad_landscape.mp4) · [spec](examples/ad_motionspec.json) |
 | **A light-theme product ad** | [spec](examples/product_ad.json) |
 | **A 40-second explainer with chart, timeline and code** | [spec](examples/explainer.json) |
 
@@ -88,7 +88,7 @@ Start your own with `python -m motionspec new my-video --kind ad` (kinds: `expla
 
 ## Scene gallery
 
-Nineteen scene types. Every one re-flows to every format.
+Twenty scene types. Every one re-flows to every format.
 
 ![Every scene type](docs/img/scene_gallery.png)
 
@@ -96,7 +96,8 @@ Nineteen scene types. Every one re-flows to every format.
 |---|---|
 | Text | `title` (lines, words or letters spring in; `*emphasis*` turns a word accent-coloured), `section`, `bullets`, `steps`, `quote`, `note` |
 | Impact | `slam` (a full-frame word per beat), `strike` (myth vs fact with a pen stroke) |
-| Data | `stat` (a counting number), `bars`, `chart` (animated line), `grid` ("x of y" dots), `compare`, `timeline` |
+| Data | `stat` (a counting number, or `style: odometer` digits that roll), `bars`, `chart` (animated line), `grid` ("x of y" dots; `style: fall` drops the misses away), `compare`, `timeline` |
+| Process | `flow` (nodes joined by arrows, with packets travelling through) |
 | Media | `image` (slow push-in), `device` (browser or phone frame), `clip` (video), `code` (typewriter) |
 | Brand | `endcard` (logo, name, tagline, pulsing button, URL, all from the theme) |
 
@@ -128,10 +129,36 @@ Not everything is dark: the same scenes under the light `paper` theme.
 
 Built-in themes: `midnight`, `paper`, `signal`. Your own images (screenshots, logos) go in the project's `assets/` folder and are referenced by relative path, as in the quickstart.
 
-**Looks and motion** (top of the spec): every scene sits on a slow animated backdrop (`"backdrop": "orbs" | "grid" | "dots" | "none"`), cards get soft shadows, and scenes change with a `transition` (`fade`, `push`, `wipe`, `zoom`, `cut`). `"look": "clean" | "soft" | "film" | "neon"` adds bloom, moving film grain and chromatic aberration; `"motion": "none" | "calm" | "lively"` gives every scene a gentle camera. Any scene can set its own `"camera": {"zoom": [1, 1.08], "pan": [0, 0, .1, 0], "drift": 0.4}`. `--blur 4` averages sub-frames for smoother movement.
+**Looks and motion** (top of the spec): every scene sits on a slow animated backdrop (`"backdrop": "orbs" | "grid" | "dots" | "none"`), cards get soft shadows, and scenes change with a `transition` (`fade`, `push`, `wipe`, `zoom`, `cut`). `"look": "clean" | "soft" | "film" | "neon" | "cinema"` adds bloom, moving film grain, chromatic aberration and, for `cinema`, warm halation and a filmic tone curve; `"motion": "none" | "calm" | "lively"` gives every scene a gentle camera. Any scene can set its own `"camera": {"zoom": [1, 1.08], "pan": [0, 0, .1, 0], "drift": 0.4}`. `--blur 2` to `4` averages sub-frames for smoother movement. Kinetic type stretches in with a variable font width where the font supports it, a scene can flip the palette with `"invert": true` to mark a twist, and settled elements float gently so nothing sits dead.
 
-## Sound, voiceover and captions
+## Voice-led videos (the biggest quality jump)
 
+A silent slideshow with music feels like a template. The same scenes feel designed when every visual lands on a spoken word. Write what is said in each scene's `say`, then pick a voice:
+
+```bash
+export ELEVENLABS_API_KEY=...            # your own key, never stored by motionspec
+motionspec voice spec.json --write       # ElevenLabs: one clip per scene, exact timing, sets voiceover/align/captions
+motionspec voice spec.json --provider local --write                   # your system's voice: free, offline, plainer
+motionspec voice spec.json --provider file --file my-recording.mp3 --write   # your own recording
+```
+
+Scenes then last as long as their narration, cut right after the last word, and animate on the words: title words stretch in as they are spoken, list items and flow nodes appear on the word that names them, a counter starts on "twenty". Captions follow the words and music and effects dip under the voice. About 4 US cents for a 35 second ElevenLabs narration. Details: [`voice.md`](skill/motionspec/references/voice.md).
+
+## Critique before you render: `analyze`
+
+```text
+$ motionspec analyze spec.json
+30.5 s, 8 scenes, 13.8 cuts/min. Content motion 3.9, ambient 2.8 (ambient does not count).
+  ok    sound cues per second: 3.08   (target 3 or more)
+  WARN  longest content-still stretch (s): 1.33   (target 1.2 or less)
+        fix: Nothing meaningful moves at 10.2s (for 1.3s). Shorten that scene, add an element that builds, ...
+```
+
+It renders thumbnails twice, once as shipped and once with the ambient layers off, so it can tell motion that the *content* makes (words arriving, numbers rolling, shapes drawing) from motion that only drifts. It also checks hook speed, cut rhythm, sound density, scene variety and text fit, and says what to fix. The Claude skill runs it in a loop: analyze, look at the preview, revise, at most twice, then show you.
+
+## Sound, music and captions
+
+- **Dense, event-bound sound.** Every reveal, typed character, counter tick, impact and cut has a sound (about 3 cues per second by default; `"sfx_density": "light"` or `"off"` to thin it). Cuts land on the beat of the generated music (`"beat_sync"`), and each cut and impact gets a small camera push (`"punch": false` to stop it).
 - **Background music is automatic.** Every render gets an original track composed in code for the video's kind (a lively one for ads and reels, a calm one for explainers, a warm one for demos), ducked under any voiceover. Pick a mood with `"music": {"mood": "warm", "db": -6}` (moods: calm, warm, upbeat, tense, minimal), use your own file with `"music": "assets/bed.mp3"`, or turn it off with `"music": "off"` or `--no-music`. The tracks are generated, so there are no sample files or licences; they are pleasant bed music, not a composer's work.
 - **Sound effects are built in**: 13 generated sounds (tick, key, click, pop, whoosh, swish, rise, riser, thud, impact, stamp, chime, success), cued by the scenes, no sample files or licences. Add your own: `"cues": [{"t": 4.2, "sound": "impact"}]`.
 - **Voiceover and music**: `"voiceover": "assets/vo.mp3"`, `"music": {"src": "assets/bed.mp3", "db": -22}`. Effects and music dip under speech, and the mix is normalised to about -14 LUFS. motionspec does not generate speech; bring a recording or any text-to-speech.
@@ -157,7 +184,7 @@ error: scenes[4] (stat).captoin: unknown field. Did you mean 'caption'?
   Numbers of 10 and above on screen must appear in the facts the spec cites (small counters are exempt), and a fact marked `"restricted": true` needs explicit `approved_facts`. It checks words and numbers; it is not a substitute for reading your own video.
 - **File sandbox.** A spec can read only files inside its project folder; URLs and ffmpeg protocols are rejected.
 - **Clear failures.** Errors name the scene and time (`scenes[3] (chart) at 12.40s: ...`). A missing font stops the render instead of drawing tiny text.
-- **Tests.** `python -m unittest discover -s tests` runs 32 tests covering easing, validation, the sandbox, policy, captions, word alignment, every scene in several formats, determinism on one machine, and an end-to-end MP4.
+- **Tests.** `python -m unittest discover -s tests` runs 43 tests covering easing, validation, the sandbox, policy, captions, word alignment, every scene in several formats, determinism on one machine, and an end-to-end MP4.
 
 ## CLI reference
 
@@ -173,6 +200,8 @@ error: scenes[4] (stat).captoin: unknown field. Did you mean 'caption'?
 | `schema` | Print or save the JSON Schema |
 | `new NAME --kind ad` | Scaffold a project |
 | `srt spec.json` | Export captions |
+| `voice spec.json --write` | Make narration from the scenes' `say` lines (ElevenLabs, local voice or your recording) |
+| `analyze spec.json` | Measure motion, sound, hook, rhythm and variety; say what to fix |
 | `align vo.mp3 "script text"` | Word timings for a script |
 | `autotime vo.mp3 --scenes N` | Scene lengths from voiceover pauses |
 | `gallery` | Render every example |

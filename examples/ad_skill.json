@@ -4,25 +4,32 @@
   "kind": "ad",
   "format": "portrait",
   "theme": "themes/motionspec.json",
-  "look": "soft",
+  "look": "cinema",
   "motion": "calm",
   "transition": "push",
+  "voice": {
+    "provider": "elevenlabs",
+    "voice_id": "DtQLDxHbTiQTpVVanTy1",
+    "model": "eleven_multilingual_v2"
+  },
   "scenes": [
     {
       "type": "title",
-      "dur": 3.4,
+      "dur": 2.6,
       "style": "words",
+      "underline": true,
       "kicker": "THE MOTIONSPEC SKILL",
       "lines": [
         "Ask Claude",
         "for *a video*."
-      ]
+      ],
+      "say": "Ask Claude for a video."
     },
     {
       "type": "code",
-      "dur": 5.6,
+      "dur": 4.6,
       "title": "In Claude Code",
-      "cps": 46,
+      "cps": 50,
       "highlight": [
         3
       ],
@@ -31,12 +38,13 @@
         "claude:  Who is it for? What is the one claim?",
         "you:     Founders. Reports take ten minutes.",
         "claude:  On it. Spec written, checked, previewed."
-      ]
+      ],
+      "say": "Tell it what you need. It asks who it is for, and what the one claim is."
     },
     {
       "type": "steps",
-      "dur": 5.4,
-      "title": "Four questions. That's all.",
+      "dur": 3.6,
+      "title": "Four questions.",
       "steps": [
         {
           "head": "What is the product?"
@@ -50,35 +58,24 @@
         {
           "head": "What should they do next?"
         }
-      ]
+      ],
+      "say": "Four questions. That is all."
     },
     {
-      "type": "bullets",
-      "dur": 5.6,
+      "type": "flow",
+      "dur": 5.0,
       "title": "Then it does the work",
-      "numbered": true,
-      "items": [
-        {
-          "head": "Writes the video spec",
-          "sub": "Scenes, text and your brand."
-        },
-        {
-          "head": "Checks it",
-          "sub": "Exact errors, content rules."
-        },
-        {
-          "head": "Shows a preview",
-          "sub": "Every scene on one sheet."
-        },
-        {
-          "head": "Renders every format",
-          "sub": "With music and captions."
-        }
-      ]
+      "nodes": [
+        "Writes the spec",
+        "Checks it",
+        "Shows a preview",
+        "Renders every format"
+      ],
+      "say": "Then it writes the spec, checks it, shows a preview, and renders every format."
     },
     {
       "type": "device",
-      "dur": 4.4,
+      "dur": 3.6,
       "kind": "phone",
       "src": "ad_assets/contact_ad.png",
       "caption": "Preview before you render.",
@@ -87,29 +84,36 @@
         0.2,
         0.5,
         0.7
-      ]
+      ],
+      "say": "You see every scene before anything renders."
     },
     {
       "type": "stat",
-      "dur": 3.6,
+      "dur": 3.2,
+      "style": "odometer",
       "title": "ONE REQUEST",
       "value": 4,
       "suffix": " formats",
-      "size": 180,
-      "caption": "9:16, 4:5, 1:1 and 16:9"
+      "size": 170,
+      "when": "four",
+      "caption": "9:16, 4:5, 1:1 and 16:9",
+      "say": "One request. Four formats."
     },
     {
       "type": "note",
-      "dur": 4.2,
+      "dur": 3.0,
+      "invert": true,
       "kicker": "YOU STAY IN CHARGE",
       "text": "Nothing is published without your OK.",
-      "small": "Approval for every post. No auto-posting."
+      "small": "Approval for every post. No auto-posting.",
+      "say": "And nothing is published without your okay."
     },
     {
       "type": "endcard",
-      "dur": 4.6,
+      "dur": 3.8,
       "button": "Get the skill",
-      "ask": "Free to try. Works in Claude Code."
+      "ask": "Free to try. Works in Claude Code.",
+      "say": "The motionspec skill. Describe the video. Get the M P 4."
     }
   ]
 }

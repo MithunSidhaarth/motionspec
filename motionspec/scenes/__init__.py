@@ -13,7 +13,7 @@ import os
 
 REGISTRY = {}
 COMMON = {"type": (str, True), "dur": ((int, float), True), "bg": (str, False), "gradient": (list, False),
-          "say": (str, False), "id": (str, False), "camera": (dict, False), "transition": (str, False), "comment": (str, False), "backdrop": (str, False)}
+          "say": (str, False), "id": (str, False), "camera": (dict, False), "transition": (str, False), "comment": (str, False), "backdrop": (str, False), "invert": (bool, False)}
 
 
 def scene(name, fields=None, cues=None, desc=""):
@@ -24,7 +24,7 @@ def scene(name, fields=None, cues=None, desc=""):
 
 
 def load_builtin():
-    from . import brand, data, media, text  # noqa: F401  (import registers the scenes)
+    from . import brand, data, media, text, verbs  # noqa: F401  (import registers the scenes)
 
 
 def load_plugins(paths):

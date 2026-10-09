@@ -2,6 +2,7 @@
 import math
 from functools import lru_cache
 
+from .. import sync
 from ..ease import in_out, lerp, out_back, out_cubic, prog, punch
 from . import scene
 
@@ -26,23 +27,44 @@ def _source(c, s, t):
 _SRC = {"source": (str, False)}
 
 
+def _stat_t0(s): return sync.find(s, s.get("when", ""), 0.2) if s.get("when") else 0.2
+
+
 @scene("stat", fields={**_SRC, "value": ((int, float), True), "prefix": (str, False), "suffix": (str, False), "decimals": (int, False),
-                       "commas": (bool, False), "title": (str, False), "caption": (str, False), "size": ((int, float), False)},
-       cues=lambda s: [(0.2, "rise"), (1.4, "tick")], desc="One big number that counts up, with a title above and a caption below.")
+                       "commas": (bool, False), "title": (str, False), "caption": (str, False), "size": ((int, float), False),
+                       "style": (str, False), "when": (str, False)},
+       cues=lambda s: [(_stat_t0(s) - 0.05, "rise")] + [(_stat_t0(s) + 0.07 * i, "tick", -10) for i in range(14)] + [(_stat_t0(s) + 1.1, "impact", -7)],
+       desc="One big number that counts up (or rolls like an odometer: style odometer), with a title above and a caption below. `when`: a spoken word to start on.")
 def stat(c, t, s):
-    v = s["value"] * in_out(prog(t, 0.2, 1.1))
+    t0 = _stat_t0(s); v = s["value"] * in_out(prog(t, t0, 1.1))
     shown = f'{s.get("prefix", "")}{_num(v, s.get("decimals", 0), s.get("commas", False))}{s.get("suffix", "")}'
     c.text(c.cx, c.Y(520) if not c.wide else c.H * .16, c.fit(s.get("title", ""), "mono", 36), "mono", 36, "muted", prog(t, 0.1, .4))
     ny = c.Y(700) if not c.wide else c.H * .26
     c.glow(c.cx, ny + c.S(s.get("size", 300)) * 0.5, c.S(s.get("size", 300)) * 1.6, "accent", 0.16 * prog(t, 0.2, .6))
-    c.text(c.cx, ny, shown, "bold", s.get("size", 300), "accent", prog(t, 0.2, .3), scale=punch(t, 1.3, 0.3, 0.05))
+    if s.get("style") == "odometer": _odometer(c, t, s, ny, t0)
+    else: c.text(c.cx, ny, shown, "bold", s.get("size", 300), "accent", prog(t, t0, .3), scale=punch(t, t0 + 1.1, 0.3, 0.05))
     q = prog(t, 1.3, .6)
     c.text(c.cx, c.Y(1120) if not c.wide else c.H * .72, c.fit(s.get("caption", ""), "bold", 54), "bold", 54, "fg", q, dy=(1 - q) * c.S(30))
     _source(c, s, t)
 
 
+def _odometer(c, t, s, y, t0):
+    """Each digit is a wheel that rolls to its final value; the wheels settle left to right."""
+    size = s.get("size", 300); f = c.font("bold", c.S(size)); text = f'{s.get("prefix", "")}{_num(s["value"], s.get("decimals", 0), s.get("commas", False))}{s.get("suffix", "")}'
+    dw = f.getlength("0"); widths = [dw if ch.isdigit() else f.getlength(ch) for ch in text]; x = c.cx - sum(widths) / 2; h = c.S(size) * 1.1
+    for k, ch in enumerate(text):
+        cx = x + widths[k] / 2
+        if ch.isdigit():
+            p = out_cubic(prog(t, t0 + 0.08 * k, 1.1)); pos = (int(ch) + 10 * (1 + k % 2)) * p; d = int(pos); frac = pos - d
+            c.text(cx, y - frac * h * 0.9, str((d) % 10), "bold", size, "accent", (1 - frac) * min(1, prog(t, t0, .2) * 3), anchor="ma")
+            c.text(cx, y + (1 - frac) * h * 0.9, str((d + 1) % 10), "bold", size, "accent", frac * min(1, prog(t, t0, .2) * 3), anchor="ma")
+        else:
+            c.text(cx, y, ch, "bold", size, "accent", prog(t, t0, .3), anchor="ma")
+        x += widths[k]
+
+
 @scene("bars", fields={**_SRC, "title": (str, False), "items": (list, True), "note": (str, False)},
-       cues=lambda s: [(0.4 + k * 0.35, "tick") for k in range(len(s.get("items", [])))],
+       cues=lambda s: [(0.1, "swish", -9)] + [(0.4 + k * 0.35, "tick") for k in range(len(s.get("items", [])))] + [(0.4 + k * 0.35 + 0.5, "pop", -9) for k in range(len(s.get("items", [])))],
        desc="Horizontal bars. items: {label, value, suffix?, decimals?, accent?}.")
 def bars(c, t, s):
     items = s["items"]
@@ -63,7 +85,7 @@ def bars(c, t, s):
 
 @scene("chart", fields={**_SRC, "title": (str, False), "series": (list, True), "labels": (list, False), "note": (str, False),
                         "zero": (bool, False), "suffix": (str, False)},
-       cues=lambda s: [(0.3, "whoosh")], desc="Animated line chart. series: [{label, values, accent?}], labels = x-axis labels.")
+       cues=lambda s: [(0.3, "whoosh")] + [(0.45 + 0.17 * i, "tick", -11) for i in range(10)] + [(2.2, "pop")], desc="Animated line chart. series: [{label, values, accent?}], labels = x-axis labels.")
 def chart(c, t, s):
     ser = [x for x in s["series"] if x.get("values")]
     if not ser: return
@@ -100,8 +122,8 @@ def _spread(total, hit):
 
 
 @scene("grid", fields={**_SRC, "total": (int, True), "hit": (int, True), "title": (str, False), "label_total": (str, False),
-                       "label_hit": (str, False), "cols": (int, False)},
-       cues=lambda s: [(0.2, "whoosh"), (2.0, "rise"), (3.6, "thud")],
+                       "label_hit": (str, False), "cols": (int, False), "style": (str, False)},
+       cues=lambda s: [(0.2, "whoosh")] + [(0.3 + 0.1 * i, "tick", -12) for i in range(14)] + [(2.0, "rise")] + [(2.1 + 0.09 * i, "pop", -10) for i in range(min(16, max(1, s.get("hit", 1))))] + [(3.7, "thud")] + ([(4.4, "whoosh")] if s.get("style") == "fall" else []),
        desc="Proportion grid: `total` dots, `hit` of them light up. Shows 'x of y' at a glance.")
 def grid(c, t, s):
     total = max(1, min(int(s["total"]), 20000)); hit = max(0, min(int(s["hit"]), total)); wide = c.wide
@@ -114,6 +136,12 @@ def grid(c, t, s):
     n_vis = int(total * in_out(prog(t, 0.2, 1.6))); lit_k = in_out(prog(t, 2.0, 1.6)); n_lit = int(hit * lit_k)
     for i in range(min(n_vis, total)):
         x, y = gx0 + (i % cols) * gap, gy0 + (i // cols) * gap
+        if s.get("style") == "fall" and i not in idx and t > 4.4:      # the misses drop away under gravity, staggered by position
+            fd = t - 4.4 - ((i * 7919) % 100) / 100 * 0.5
+            if fd > 0:
+                y += 0.5 * 2600 * c.u * fd * fd; a = max(0.0, 1 - fd * 1.6)
+                if a > 0: c.dot(x, y, r, "dim", a)
+                continue
         if i in idx and idx[i] < n_lit:
             k = prog(t, 2.0 + idx[i] / max(1, hit) * 1.6, 0.25); c.dot(x, y, r + c.S(9) * (1 - k) + 1, "accent")
         else: c.dot(x, y, r, "dim", 1)
@@ -128,7 +156,7 @@ def grid(c, t, s):
 
 
 @scene("compare", fields={**_SRC, "title": (str, False), "left": (dict, True), "right": (dict, True)},
-       cues=lambda s: [(0.3, "whoosh"), (0.9, "tick")],
+       cues=lambda s: [(0.3, "whoosh"), (0.9, "stamp", -9), (1.5, "pop")] + [(0.8 + 0.3 * j, "tick") for j in range(4)],
        desc="Two cards side by side (stacked on tall formats): before/after, us/them. left/right: {title, items[]}.")
 def compare(c, t, s):
     c.text(c.cx, c.H * 0.12, c.fit(s.get("title", ""), "bold", 62), "bold", 62, "fg", prog(t, 0.1, .5))

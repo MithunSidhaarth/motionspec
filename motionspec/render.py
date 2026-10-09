@@ -1,6 +1,7 @@
 """Project loading and rendering. A Project turns a validated spec into frames; render_video fans frames out across
 processes (they are independent, so the speed-up is close to linear) and streams them in order into one ffmpeg process."""
 import copy
+import dataclasses
 import hashlib
 import json
 import math
@@ -19,9 +20,9 @@ from .canvas import Canvas
 from .constants import FPS
 from .ease import in_out, prog
 from .layout import get_format
-from .post import LOOKS, MOTION, apply_camera, average, post
+from .post import LOOKS, MOTION, apply_camera, apply_punch, average, post
 from .scenes import REGISTRY, load_builtin, load_plugins
-from .theme import load_theme
+from .theme import load_theme, mix
 from .validate import validate
 
 XF = 0.3  # default crossfade seconds
@@ -51,8 +52,11 @@ class Project:
         self.voiceover = paths.resolve(spec["voiceover"], "voiceover") if spec.get("voiceover") else None
         self.music = self._music(spec)
         scenes = self.spec["scenes"]
-        self.word_times = None
-        if spec.get("align") and self.voiceover:
+        self.word_times = None; self.voice_segments = None
+        sidecar = (self.voiceover + ".timing.json") if self.voiceover else None
+        if spec.get("align") and sidecar and os.path.exists(sidecar):
+            with open(sidecar, encoding="utf-8") as fh: self._voice_led(scenes, json.load(fh))
+        elif spec.get("align") and self.voiceover:
             ws = [str(sc.get("say", "")).split() for sc in scenes]; flat = [w for x in ws for w in x]
             if flat:
                 self.word_times = align_mod.align(self.voiceover, flat); idx, t_prev = 0, 0.0
@@ -63,8 +67,12 @@ class Project:
                 scenes[-1]["dur"] = round(scenes[-1]["dur"] + 0.5, 2)
         elif (spec.get("autotime") or autotime_vo) and self.voiceover:
             for sc, d in zip(scenes, autotime.durations(self.voiceover, len(scenes))): sc["dur"] = d
+        if self.word_times is not None and self.voice_segments is None: self._inject_words(scenes)
+        if self.music and isinstance(self.music, dict) and "mood" in self.music and self.voiceover is None and spec.get("beat_sync", True):
+            self._beat_snap(scenes)
         self.timeline, t = [], 0.0
         for sc in scenes: self.timeline.append((t, t + sc["dur"], sc)); t += sc["dur"]
+        self.punches = self._punches() if spec.get("punch", True) else []
         self.duration = t; self.n_frames = int(math.ceil(t * self.fps))
         if self.voiceover:
             vd = audio.probe_duration(self.voiceover)
@@ -73,8 +81,45 @@ class Project:
             if sc["type"] == "code":
                 need = sum(len(str(x)) for x in sc.get("lines", [])) / max(1.0, float(sc.get("cps", 38))) + 0.4
                 if need > sc["dur"]: self.warnings.append(f"scenes[{i}] (code): typing needs {need:.1f}s but the scene lasts {sc['dur']}s; raise cps or dur")
-        self.captions = captions_mod.build(scenes, spec.get("captions"), word_times=self.word_times)
+        # captions come from `say` only when there is narration (or you ask with "say_captions": true); otherwise they would repeat the on-screen text
+        caption_scenes = scenes if (self.voiceover or spec.get("say_captions")) else [{k: v for k, v in sc.items() if k != "say"} for sc in scenes]
+        self.captions = captions_mod.build(caption_scenes, spec.get("captions"), word_times=self.word_times)
         self.karaoke = spec.get("captions_style") == "karaoke"
+
+    def _voice_led(self, scenes, data):
+        """Use exact per-scene narration timing from the sidecar written by `motionspec voice`."""
+        by_scene = {e["scene"]: e for e in data["scenes"]}; t, segs, flat = 0.0, [], []
+        for i, sc in enumerate(scenes):
+            e = by_scene.get(i)
+            if e:
+                lead = 0.2; sc["dur"] = round(max(sc["dur"], e["t1"] - e["t0"] + lead + 0.45), 2); segs.append((e["t0"], e["t1"], t + lead))
+                words = [{"word": w["word"], "t0": round(w["t0"] - e["t0"] + lead, 3), "t1": round(w["t1"] - e["t0"] + lead, 3)} for w in e["words"]]
+                sc["_words"] = words; flat += [{"word": w["word"], "t0": round(t + w["t0"], 3), "t1": round(t + w["t1"], 3)} for w in words]
+            t += sc["dur"]
+        self.voice_segments = segs; self.word_times = flat
+
+    def _inject_words(self, scenes):
+        """Give each scene its spoken words (times relative to the scene start) so scenes can sync to them."""
+        t, i = 0.0, 0
+        for sc in scenes:
+            n = len(str(sc.get("say", "")).split())
+            if n and self.word_times and i + n <= len(self.word_times):
+                sc["_words"] = [{"word": w["word"], "t0": round(w["t0"] - t, 3), "t1": round(w["t1"] - t, 3)} for w in self.word_times[i:i + n]]
+            i += n; t += sc["dur"]
+
+    def _beat_snap(self, scenes):
+        """Land every cut on the music's beat: scene ends snap to the nearest beat (at least two beats per scene)."""
+        from .music import MOODS
+        beat = 60.0 / MOODS[self.music["mood"]]["bpm"]; cum = 0.0
+        for sc in scenes:
+            end = max(cum + 2 * beat, round((cum + sc["dur"]) / beat) * beat); sc["dur"] = round(end - cum, 3); cum = end
+
+    def _punches(self):
+        """Absolute times that get a camera push: every scene start after the first, plus impact-type sound cues."""
+        pts = [a for a, _, _ in self.timeline[1:]]
+        for a, _, sc in self.timeline:
+            pts += [a + ct for ct, name, *_ in REGISTRY[sc["type"]]["cues"](sc) if name in ("impact", "stamp", "thud")]
+        return sorted(pts)
 
     @staticmethod
     def _music(spec):
@@ -92,7 +137,11 @@ class Project:
     # ---- drawing
     def _scene_canvas(self, idx, local_t, warns):
         a, b, sc = self.timeline[idx]
-        c = Canvas(self.fmt, self.theme, sc.get("bg"), sc.get("gradient"), warns)
+        th = self.theme
+        if sc.get("invert"):                                    # palette flip: light-on-dark becomes dark-on-light for one scene
+            nb, nf = th.fg, th.bg
+            th = dataclasses.replace(th, bg=nb, fg=nf, muted=mix(nf, nb, 0.4), dim=mix(nb, nf, 0.14), card=mix(nb, nf, 0.07), backdrop="none")
+        c = Canvas(self.fmt, th, sc.get("bg"), sc.get("gradient"), warns)
         try:
             if not sc.get("bg") or sc.get("backdrop"):
                 backdrop.draw(c, a + local_t, sc.get("backdrop", self.spec.get("backdrop", self.theme.backdrop)))
@@ -119,25 +168,37 @@ class Project:
         a, b, sc = self.timeline[k]; img = self._scene_canvas(k, t - a, warns)
         nxt = self.timeline[k + 1][2] if k + 1 < len(self.timeline) else None
         kind = nxt.get("transition", self.spec.get("transition", "fade")) if nxt else None
-        xf = 0.0 if (nxt is None or kind == "cut") else min(0.45 if kind in ("push", "wipe", "zoom") else XF, sc["dur"] * 0.4, nxt["dur"] * 0.4)
+        xf = 0.0 if (nxt is None or kind == "cut") else min(0.55 if kind in ("push", "wipe", "zoom") else XF, sc["dur"] * 0.4, nxt["dur"] * 0.4)
         if xf and b - t < xf:
             other = self._scene_canvas(k + 1, xf - (b - t), warns)
-            img = _transition(img, other, in_out(1 - (b - t) / xf), kind)
+            if kind in ("push", "wipe", "zoom"):          # blur the movement itself: both scenes are drawn once, the move is averaged over the shutter
+                shutter = 0.5 / self.fps
+                img = average([_transition(img, other, in_out(max(0.0, min(1.0, 1 - (b - (t + ((j + 0.5) / 12 - 0.5) * shutter)) / xf))), kind) for j in range(12)])
+            else:
+                img = _transition(img, other, in_out(1 - (b - t) / xf), kind)
+        img = apply_punch(img, t, self.punches)
         self._caption(img, t)
         return post(img, self.post_cfg, index)
 
     def frame(self, index, warns=None):
-        t0 = index / self.fps
-        if self.blur <= 1: return self.frame_at(t0, index, warns)
+        t0 = index / self.fps; n = self.blur
+        if n <= 1: return self.frame_at(t0, index, warns)
         shutter = 0.5 / self.fps                                 # 180-degree shutter
-        return average([self.frame_at(t0 + ((k + 0.5) / self.blur - 0.5) * shutter, index, warns) for k in range(self.blur)])
+        return average([self.frame_at(t0 + ((k + 0.5) / n - 0.5) * shutter, index, warns) for k in range(n)])
 
     def cues(self):
         out = []
         for a, _, sc in self.timeline:
-            out += [(a + ct, name) for ct, name in REGISTRY[sc["type"]]["cues"](sc)]
+            out += [(a + c[0], c[1], *c[2:]) for c in REGISTRY[sc["type"]]["cues"](sc)]       # (time, sound[, gain_db])
         out += [(c["t"], c["sound"]) for c in self.spec.get("cues", [])]      # manual cue sheet: [{"t": 1.2, "sound": "impact"}]
-        return sorted(out)
+        dens = self.spec.get("sfx_density", "rich")
+        if dens == "off": return []
+        if dens == "light": out = [c for c in out if c[1] not in ("tick", "key", "click")]
+        else:                                                                    # rich: a sound under every cut
+            for k, (a, b, sc) in enumerate(self.timeline[:-1]):
+                nxt = self.timeline[k + 1][2]; kind = nxt.get("transition", self.spec.get("transition", "fade"))
+                if kind != "cut": out.append((b - 0.12, "whoosh" if kind in ("push", "wipe", "zoom") else "swish", -7))
+        return sorted(out, key=lambda c: c[0])
 
 
 def _transition(a, b, k, kind):
@@ -189,7 +250,7 @@ def render_video(spec_path, out, fmt=None, jobs=None, crf=18, blur=None, sfx=Tru
     tmp = tempfile.mkdtemp(prefix="motionspec_"); wav = None
     cues = P.cues() if sfx and P.spec.get("sfx", True) else []
     bed = P.music if music else None
-    if cues or P.voiceover or bed: wav = audio.mix(cues, P.duration, os.path.join(tmp, "mix.wav"), P.voiceover, bed)
+    if cues or P.voiceover or bed: wav = audio.mix(cues, P.duration, os.path.join(tmp, "mix.wav"), P.voiceover, bed, voice_segments=P.voice_segments)
     f = P.fmt
     cmd = ["ffmpeg", "-y", "-v", "error", "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{f.W}x{f.H}", "-r", str(P.fps), "-i", "-"]
     if wav: cmd += ["-i", wav]

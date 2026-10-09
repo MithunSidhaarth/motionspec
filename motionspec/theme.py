@@ -51,6 +51,12 @@ def contrast(a, b):
     return (la + 0.05) / (lb + 0.05)
 
 
+def mix(a, b, k):
+    """Hex colour k of the way from a to b."""
+    ca, cb = rgb(a), rgb(b)
+    return "#%02X%02X%02X" % tuple(int(round(x + (y - x) * k)) for x, y in zip(ca, cb))
+
+
 @dataclass
 class Theme:
     name: str = "midnight"
@@ -74,9 +80,11 @@ class Theme:
     backdrop: str = "orbs"   # none | orbs | grid | dots: slow animated depth behind every scene
     base_dir: str = "."
 
-    def font(self, kind, size):
+    def font(self, kind, size, width=None):
+        """`width` (75..100) squeezes or stretches fonts that have a width axis (e.g. Bahnschrift); other fonts ignore it."""
         s = max(8, round(size * 2) / 2)            # quantise to 0.5 px so animated sizes do not flood the cache
-        return _load_font(kind, int(round(s)), self.fonts.get(kind, ""), tuple(self.font_dirs), self.base_dir)
+        w = None if width is None else int(round(max(75, min(100, width)) / 5) * 5)
+        return _load_font(kind, int(round(s)), self.fonts.get(kind, ""), tuple(self.font_dirs), self.base_dir, w)
 
     def validate(self):
         for k in ("bg", "fg", "muted", "dim", "card", "accent", "accent_text", "positive", "negative"): rgb(getattr(self, k))
@@ -106,12 +114,23 @@ def font_path(kind, custom="", extra_dirs=(), base_dir="."):
 
 
 @lru_cache(maxsize=512)
-def _load_font(kind, size, custom, extra_dirs, base_dir):
+def _load_font(kind, size, custom, extra_dirs, base_dir, width=None):
     p = font_path(kind, custom, extra_dirs, base_dir)
     f = ImageFont.truetype(p, size)
-    if kind == "bold" and "bahn" in p.lower():
-        try: f.set_variation_by_name("Bold")
-        except (OSError, ValueError): pass       # font has no variation axes: regular weight is acceptable
+    try:
+        axes = f.get_variation_axes()
+    except (OSError, AttributeError):
+        return f                                   # not a variable font: weight and width are fixed
+    try:
+        vals = []
+        for ax in axes:
+            name = ax["name"].decode() if isinstance(ax["name"], bytes) else str(ax["name"])
+            if name.lower().startswith("weight"): vals.append(ax["maximum"] if kind == "bold" else ax["default"])
+            elif name.lower().startswith("width"): vals.append(width if width is not None else ax["default"])
+            else: vals.append(ax["default"])
+        f.set_variation_by_axes(vals)
+    except (OSError, ValueError):
+        pass
     return f
 
 

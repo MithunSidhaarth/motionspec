@@ -9,7 +9,7 @@ TOP = {"spec_version": (int, False), "id": (str, False), "kind": (str, False), "
        "scenes": (list, True), "captions": (list, False), "voiceover": (str, False), "music": ((str, dict, bool), False), "facts": (list, False), "approved_facts": (list, False),
        "policy": (str, False), "autotime": (bool, False), "blur": (int, False), "post": (dict, False), "fps": (int, False),
        "sfx": (bool, False), "comment": (str, False), "look": (str, False), "motion": (str, False),
-       "cues": (list, False), "align": (bool, False), "captions_style": (str, False), "backdrop": (str, False), "transition": (str, False)}
+       "cues": (list, False), "align": (bool, False), "captions_style": (str, False), "backdrop": (str, False), "transition": (str, False), "voice": (dict, False), "say_captions": (bool, False), "beat_sync": (bool, False), "sfx_density": (str, False), "punch": (bool, False)}
 KINDS = ("reel", "ad", "explainer", "demo", "general")
 TRANSITIONS = ("fade", "cut", "push", "wipe", "zoom")
 MAX_DUR, MAX_TOTAL = 600, 1800
@@ -47,6 +47,10 @@ def validate(spec):
     from .post import LOOKS, MOTION
     if spec.get("look") and spec["look"] not in LOOKS: errs.append(f"look: unknown '{spec['look']}'.{_suggest(spec['look'], LOOKS)} Choose from {sorted(LOOKS)}")
     if spec.get("motion") and spec["motion"] not in MOTION: errs.append(f"motion: unknown '{spec['motion']}'. Choose from {sorted(MOTION)}")
+    if spec.get("sfx_density") and spec["sfx_density"] not in ("rich", "light", "off"): errs.append("sfx_density: use 'rich' (default), 'light' or 'off'")
+    if isinstance(spec.get("voice"), dict):
+        from .voice import PROVIDERS
+        if spec["voice"].get("provider") and spec["voice"]["provider"] not in PROVIDERS: errs.append(f"voice.provider: '{spec['voice']['provider']}' not one of {PROVIDERS}")
     from .backdrop import STYLES
     if spec.get("backdrop") and spec["backdrop"] not in STYLES: errs.append(f"backdrop: '{spec['backdrop']}' not one of {STYLES}")
     if spec.get("transition") and spec["transition"] not in TRANSITIONS: errs.append(f"transition: '{spec['transition']}' not one of {TRANSITIONS}")
