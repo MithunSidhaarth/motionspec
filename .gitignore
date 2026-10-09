@@ -4,5 +4,6 @@ __pycache__/
 out/
 gallery/
 *.mp4
+!docs/media/*.mp4
 *.wav
 .venv/
