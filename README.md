@@ -11,7 +11,7 @@ For solo founders and small teams who need explainers and ads in every screen sh
 </p>
 <p align="center"><sub>This ad was made by motionspec, from <a href="examples/ad_motionspec.json">one JSON file</a>. <a href="docs/media/motionspec_ad_landscape.mp4">Full-quality MP4</a>. Other shapes: <code>motionspec render examples/ad_motionspec.json --format reel</code></sub></p>
 
-> **Status: v0.1, a solo project.** It works and is tested (43 tests), but it is young. **Licence: source-available, not open source yet.** You can read and try it; reuse terms are not set. See [Licence](#licence).
+> **Status: v0.1, a solo project.** It works and is tested (43 tests), but it is young. **Licence: MIT**, free to use, change and ship, including commercially. See [Licence](#licence).
 
 ---
 
@@ -259,7 +259,7 @@ Based on each tool's public documentation as of October 2026; check before you d
 - **Fonts come from your system** unless you add a `.ttf` to `motionspec/fonts/` or the theme, so output can differ slightly between machines. Bundled open-licence fonts are on the roadmap.
 - **Hindi, Tamil, Arabic and other complex scripts** need a Pillow build with Raqm layout, which many installs lack. Test your language before relying on it.
 - **Word alignment** without `faster-whisper` is a close estimate, not a transcript.
-- **No text-to-speech.** Bring a voiceover.
+- **Narration needs a voice source.** ElevenLabs needs your own API key (a few US cents for a 35 second narration), the local system voice is plainer and may be blocked in sandboxed environments, or bring your own recording.
 - **Platforms:** developed on Windows; the test suite runs in CI on Windows and Linux (Python 3.10 and 3.12). macOS is untested.
 - **Maturity:** version 0.1, one maintainer.
 
@@ -267,9 +267,13 @@ Based on each tool's public documentation as of October 2026; check before you d
 
 Bundled open-licence fonts, a Raqm check in `doctor`, audio on `clip`, more themes, a PyPI release.
 
+## Contributing
+
+Issues and pull requests are welcome. Run `python -m unittest discover -s tests` before sending a change, and add a test for anything you fix. By contributing you agree your work is released under the MIT licence.
+
 ## Licence
 
-Copyright (c) 2026 Mithun Sidhaarth A M. **All rights reserved for now.** The source is public so you can read and try it, but it is not yet licensed for reuse or redistribution; to use it commercially, ask first. This will change to an open-source licence once decided. See [`LICENSE`](LICENSE). Because of this, pull requests are not being accepted yet; issues and feedback are welcome.
+[MIT](LICENSE), Copyright (c) 2026 Mithun Sidhaarth A M. Use it, change it and ship what you make with it, including commercially. The videos you render are yours. The only requirement is keeping the licence notice if you redistribute the code.
 
 ## Acknowledgements
 
