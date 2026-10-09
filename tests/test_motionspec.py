@@ -156,6 +156,21 @@ class Align(unittest.TestCase):
         self.assertAlmostEqual(out[-1]["t1"], 6.0, delta=0.08)
 
 
+class Emphasis(unittest.TestCase):
+    def test_emphasis_spans_words(self):
+        from motionspec.scenes.text import _tokens
+        self.assertEqual(_tokens("for *a video*."), [("for", False), ("a", True), ("video.", True)])
+        self.assertEqual(_tokens("Make it *pop* now"), [("Make", False), ("it", False), ("pop", True), ("now", False)])
+
+
+class Warnings(unittest.TestCase):
+    def test_code_typing_that_cannot_finish_is_flagged(self):
+        sp = {"scenes": [{"type": "code", "dur": 2, "cps": 10, "lines": ["x" * 80]}]}
+        self.assertTrue(any("typing needs" in w for w in Project(sp, EX).warnings))
+        sp["scenes"][0]["cps"] = 200
+        self.assertFalse(any("typing needs" in w for w in Project(sp, EX).warnings))
+
+
 class Music(unittest.TestCase):
     def test_generated_music_is_deterministic_and_sane(self):
         import numpy as np

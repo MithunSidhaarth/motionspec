@@ -4,11 +4,13 @@ from . import scene
 
 
 def _tokens(line):
-    """'Make it *pop* today' -> [('Make', False), ('it', False), ('pop', True), ('today', False)] (asterisks mark emphasis)."""
-    out = []
+    """'Make it *pop* now' -> [('Make', False), ('it', False), ('pop', True), ('now', False)]. Emphasis can span words: '*a video*'."""
+    out, on = [], False
     for w in line.split():
-        em = w.startswith("*") and w.rstrip(".,!?;:").endswith("*") and len(w) > 2
-        out.append((w.replace("*", ""), em))
+        start = w.startswith("*"); end = w.rstrip(".,!?;:").endswith("*") and len(w.rstrip(".,!?;:")) > (1 if start else 0)
+        if start: on = True
+        out.append((w.replace("*", ""), on))
+        if end: on = False
     return out
 
 
@@ -17,7 +19,7 @@ def _tokens(line):
        cues=lambda s: [(0.15 + i * s.get("step", 0.22) * (1.5 if s.get("style") == "words" else 1), "tick") for i in range(len(s.get("lines", [])))],
        desc="Big headline. `style`: lines (default) | words (each word springs in) | letters (kinetic). Use *asterisks* to colour a word with the accent.")
 def title(c, t, s):
-    size = s.get("size", 112); y = c.Y(560) if not c.wide else c.H * 0.40; style = s.get("style", "lines"); step = s.get("step", 0.22)
+    size = s.get("size", 112); y = c.Y(560) if c.tall else c.H * (0.40 if c.wide else 0.36); style = s.get("style", "lines"); step = s.get("step", 0.22)
     px = c.S(size)
     if s.get("kicker"): c.text(c.cx, y - c.S(110), s["kicker"], "mono", 36, "muted", prog(t, 0.0, 0.5))
     n_word = 0
@@ -63,7 +65,8 @@ def bullets(c, t, s):
     items = [i if isinstance(i, dict) else {"head": i} for i in s["items"]]
     if not items: return
     if s.get("title"): c.text(c.cx, c.H * 0.15, c.fit(s["title"], "bold", 70, 0.86), "bold", 70, "fg", out_cubic(prog(t, 0.1, .5)))
-    n = len(items); y = c.H * 0.28; step = min(c.S(230), (c.H * 0.6) / n); left = c.W * (0.12 if not c.wide else 0.2)
+    n = len(items); top, bot = c.H * 0.22, c.H * (0.76 if c.tall else 0.88)
+    step = min(c.S(230), (bot - top) / n); block = (n - 1) * step + c.S(120); y = top + max(0.0, ((bot - top) - block) / 2); left = c.W * (0.12 if not c.wide else 0.2)
     for k, it in enumerate(items):
         p = out_cubic(prog(t, 0.45 + k * 0.45, 0.55))
         if s.get("numbered"):

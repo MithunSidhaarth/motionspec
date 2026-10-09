@@ -15,6 +15,17 @@ For solo founders and small teams who need explainers and ads in every screen sh
 
 ---
 
+### More made with it
+
+| | |
+|---|---|
+| **The skill's own ad**: "Ask Claude for a video" (4:5, 9:16, 16:9) | [4:5](docs/media/skill_ad_portrait.mp4) · [9:16](docs/media/skill_ad_reel.mp4) · [16:9](docs/media/skill_ad_landscape.mp4) · [spec](examples/ad_skill.json) |
+| **motionspec's ad** (the one above) | [16:9](docs/media/motionspec_ad_landscape.mp4) · [9:16](docs/media/motionspec_ad_reel.mp4) · [spec](examples/ad_motionspec.json) |
+| **A light-theme product ad** | [spec](examples/product_ad.json) |
+| **A 40-second explainer with chart, timeline and code** | [spec](examples/explainer.json) |
+
+![The skill ad, one frame per scene](docs/img/skill_ad_contact.png)
+
 ## What it is
 
 You write a short JSON file that lists scenes: a headline, a screenshot in a browser frame, a chart, a button. motionspec draws every frame and encodes an MP4 with sound. The same file renders as a 9:16 reel, a 4:5 feed ad, a square post or a 16:9 video.
@@ -220,7 +231,7 @@ Based on each tool's public documentation as of October 2026; check before you d
 - **Hindi, Tamil, Arabic and other complex scripts** need a Pillow build with Raqm layout, which many installs lack. Test your language before relying on it.
 - **Word alignment** without `faster-whisper` is a close estimate, not a transcript.
 - **No text-to-speech.** Bring a voiceover.
-- **Platforms:** developed on Windows; a CI workflow for Windows and Linux is included but has not run yet. macOS is untested.
+- **Platforms:** developed on Windows; the test suite runs in CI on Windows and Linux (Python 3.10 and 3.12). macOS is untested.
 - **Maturity:** version 0.1, one maintainer.
 
 ## Roadmap

@@ -87,7 +87,7 @@ def clip(c, t, s):
 def code(c, t, s):
     lines = [str(x) for x in s["lines"]]
     if not lines: return
-    cps = max(1.0, float(s.get("cps", 38))); chars = int(max(0, t - 0.4) * cps)
+    cps = max(1.0, float(s.get("cps", 38))); chars = int(max(0, t - 0.4) * cps)      # cps: characters per second; pick it so typing ends before the scene does
     x0, x1 = c.W * 0.06, c.W * 0.94; size = 34; lh = c.S(size * 1.55)
     h = lh * len(lines) + c.S(150); y0 = c.H / 2 - h / 2
     if s.get("title"): c.text(c.cx, y0 - c.S(110), c.fit(s["title"], "bold", 56, 0.86), "bold", 56, "fg", prog(t, 0.1, .4))

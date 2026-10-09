@@ -1,8 +1,10 @@
 # Spec reference
 
-Generated from the scene registry (`motionspec scenes`). `*` = required. Top-level keys: spec_version, id, kind (reel|ad|explainer|demo|general), format, theme, scenes, captions [{t0,t1,text}], voiceover, music, facts, policy, autotime, blur, post {bloom, grain, aberration}, fps, sfx.
+Generated from the scene registry (`motionspec scenes`). `*` = required.
 
-Every scene also accepts: `camera` {zoom:[from,to], pan:[dx0,dy0,dx1,dy1], drift:0..1}, `transition: "cut"`, `say`, `bg`, `gradient`.
+Top-level keys: spec_version, id, kind (reel|ad|explainer|demo|general), format, theme, look (clean|soft|film|neon), motion (none|calm|lively), backdrop (orbs|grid|dots|none), transition (fade|cut|push|wipe|zoom), scenes, captions [{t0,t1,text}], captions_style (plain|karaoke), voiceover, music ("auto" default | "off" | path | {mood, db}), align, autotime, cues [{t, sound}], facts, approved_facts, policy, blur, post {bloom, grain, aberration}, fps, sfx.
+
+Every scene also accepts: `camera` {zoom:[from,to], pan:[dx0,dy0,dx1,dy1], drift:0..1}, `transition`, `backdrop`, `say`, `bg`, `gradient`.
 
 ```
 
@@ -44,6 +46,14 @@ compare: Two cards side by side (stacked on tall formats): before/after, us/them
     title: str
     left*: dict
     right*: dict
+
+device: Screenshot inside a browser window (`kind`: browser, default on wide) or phone (`kind`: phone, default on tall) frame, with a slow push-in.
+    src*: str
+    kind: str
+    url: str
+    caption: str
+    zoom: int/float
+    pan: list
 
 endcard: End card: theme logo, brand name, tagline, optional pulsing button, url. Text defaults come from the theme.
     brand: str
@@ -116,14 +126,15 @@ timeline: Milestones along a line. events: {when, what}. Horizontal on wide form
     title: str
     events*: list
 
-title: Big staggered headline. `lines`, optional `accent` (index drawn in the accent colour), `kicker`, `subtitle`.
+title: Big headline. `style`: lines (default) | words (each word springs in) | letters (kinetic). Use *asterisks* to colour a word with the accent.
     lines*: list
     accent: int
     size: int/float
     kicker: str
     subtitle: str
     step: int/float
+    style: str
 
-Common to all scenes: type, dur, bg, gradient, say, id, camera, transition, comment   (* = required)
+Common to all scenes: type, dur, bg, gradient, say, id, camera, transition, comment, backdrop   (* = required)
 
 ```

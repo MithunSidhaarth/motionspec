@@ -69,6 +69,10 @@ class Project:
         if self.voiceover:
             vd = audio.probe_duration(self.voiceover)
             if vd > t + 0.05: self.warnings.append(f"voiceover is {vd:.1f}s but scenes total {t:.1f}s: the end will be cut. Use \"autotime\": true or lengthen scenes.")
+        for i, sc in enumerate(scenes):
+            if sc["type"] == "code":
+                need = sum(len(str(x)) for x in sc.get("lines", [])) / max(1.0, float(sc.get("cps", 38))) + 0.4
+                if need > sc["dur"]: self.warnings.append(f"scenes[{i}] (code): typing needs {need:.1f}s but the scene lasts {sc['dur']}s; raise cps or dur")
         self.captions = captions_mod.build(scenes, spec.get("captions"), word_times=self.word_times)
         self.karaoke = spec.get("captions_style") == "karaoke"
 

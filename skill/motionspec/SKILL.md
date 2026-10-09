@@ -16,7 +16,7 @@ Ask four questions, nothing more: **product**, **audience**, **the one claim**, 
 3. Write or edit `spec.json` from the brief (scene catalogue: `motionspec scenes`; field reference: `references/spec-reference.md`).
 4. `motionspec validate spec.json` then `motionspec lint spec.json` (when the project has a policy). Fix every error before going on.
 5. `motionspec preview spec.json -o preview.png`. Show the contact sheet and ask for **one** round of changes.
-6. `motionspec render spec.json -o out.mp4` (add `--format all` for every aspect ratio, `--blur 4` for smoother motion).
+6. `motionspec render spec.json -o out.mp4` (add `--format all` for every aspect ratio, `--blur 4` for smoother motion). Background music is added automatically (an original generated track matched to the video's kind); `"music": "off"` or `--no-music` turns it off, `{"mood": "warm"}` changes it. Mention to the user that it is generated bed music and ask them to listen once. For a live, scrubbable preview while editing: `motionspec serve spec.json`.
 7. Write the post pack (`references/post-pack.md`) and `motionspec srt spec.json`.
 8. Show video path + post pack. **Nothing is published until the user approves that specific post.**
 
@@ -27,6 +27,7 @@ Ask four questions, nothing more: **product**, **audience**, **the one claim**, 
 - Keep claims proportionate: describe patterns and measurements, not motives. Put limits on screen ("illustrative", "screening indicator", "n = 140") when they apply.
 - No new numbers in the caption that are not in the video.
 - Never auto-publish, auto-send or bulk-post.
+- With a voiceover, put the spoken words in each scene's `say`, set `"align": true`, and optionally `"captions_style": "karaoke"`; scene cuts then follow the speech. Without `faster-whisper` the word times are an estimate: say so.
 
 ## Choosing the format and scenes
 
