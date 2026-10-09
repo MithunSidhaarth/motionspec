@@ -5,11 +5,12 @@ from . import scene
 
 @scene("endcard", fields={"brand": (str, False), "tagline": (str, False), "url": (str, False), "button": (str, False),
                           "ask": (str, False), "loop": (bool, False)},
-       cues=lambda s: [(0.1, "rise"), (1.2, "pop")],
+       cues=lambda s: [(0.1, "rise"), (1.2, "chime")],
        desc="End card: theme logo, brand name, tagline, optional pulsing button, url. Text defaults come from the theme.")
 def endcard(c, t, s):
     th = c.theme; brand = s.get("brand", th.brand); tagline = s.get("tagline", th.tagline); url = s.get("url", th.url)
     p = spring(prog(t, 0.1, 0.9)); cy = c.H * (0.33 if not c.wide else 0.30); y = cy
+    c.glow(c.cx, cy, c.S(420), "accent", 0.14 * min(1, p * 2))
     had_logo = c.logo(c.cx, cy, c.S(220) * max(p, 0.01), min(1, p * 2))
     if had_logo: y = cy + c.S(190)
     if brand:
@@ -19,14 +20,14 @@ def endcard(c, t, s):
     if s.get("button"):
         a = prog(t, 1.1, .5); k = punch(t, 1.1, 0.4, 0.06) * (1 + 0.025 * __import__("math").sin(max(0, t - 1.8) * 4))
         w = max(c.S(520), c.text_size(s["button"], "bold", 50)[0] + c.S(120)) * k; h = c.S(120) * k
-        c.rect((c.cx - w / 2, y, c.cx + w / 2, y + h), "accent", a, radius=h / 2)
+        c.shadow_rect((c.cx - w / 2, y, c.cx + w / 2, y + h), h / 2, c.S(30), 0.5 * a, c.S(14)); c.rect((c.cx - w / 2, y, c.cx + w / 2, y + h), "accent", a, radius=h / 2)
         c.text(c.cx, y + h / 2 - c.S(30), s["button"], "bold", 50, "accent_text", a); y += c.S(180)
     if url: c.text(c.cx, y, url, "mono", 48, "accent", prog(t, 1.2, .5)); y += c.S(100)
     if s.get("ask"): c.text(c.cx, y, c.fit(s["ask"], "reg", 36, 0.8), "reg", 36, "fg", prog(t, 1.5, .5))
 
 
 @scene("slam", fields={"words": (list, True), "invert": (bool, False), "size": ((int, float), False), "hold": ((int, float), False)},
-       cues=lambda s: [(0.15 + i * s.get("hold", 0.6), "thud") for i in range(len(s.get("words", [])))],
+       cues=lambda s: [(0.15 + i * s.get("hold", 0.6), "impact") for i in range(len(s.get("words", [])))],
        desc="Full-frame word slams, one per beat, on an inverted (accent) field. `words`: [str], `hold` seconds per word.")
 def slam(c, t, s):
     words = s["words"]; hold = s.get("hold", 0.6)
@@ -39,14 +40,14 @@ def slam(c, t, s):
 
 
 @scene("strike", fields={"wrong": (str, True), "right": (str, True), "kicker": (str, False)},
-       cues=lambda s: [(0.9, "whoosh"), (1.5, "thud")],
+       cues=lambda s: [(0.9, "swish"), (1.5, "stamp")],
        desc="Myth vs fact: the wrong claim gets a pen strike drawn through it, then the correct line slams in below.")
 def strike(c, t, s):
-    y = c.H * 0.34
+    y = c.H * (0.34 if not c.wide else 0.38)
     if s.get("kicker"): c.text(c.cx, y - c.S(120), s["kicker"], "mono", 36, "muted", prog(t, 0.0, .4))
     txt = c.fit(s["wrong"], "bold", 76, 0.86); a = out_cubic(prog(t, 0.1, 0.5))
     c.text(c.cx, y, txt, "bold", 76, "muted", a)
     w, h = c.text_size(txt, "bold", 76); k = in_out(prog(t, 0.9, 0.4)); ly = y + h * 0.5
     c.line([(c.cx - w / 2 - c.S(20), ly + c.S(8)), (c.cx - w / 2 - c.S(20) + (w + c.S(40)) * k, ly - c.S(10) * k)], c.S(14), "negative")
     q = out_back(prog(t, 1.5, 0.45))
-    c.text(c.cx, c.H * 0.58, c.fit(s["right"], "bold", 96, 0.86), "bold", 96, "accent", min(1, q * 2), scale=0.85 + 0.15 * q)
+    c.text(c.cx, c.H * (0.58 if not c.wide else 0.62), c.fit(s["right"], "bold", 96, 0.86), "bold", 96, "accent", min(1, q * 2), scale=0.85 + 0.15 * q)

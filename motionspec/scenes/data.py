@@ -2,7 +2,7 @@
 import math
 from functools import lru_cache
 
-from ..ease import in_out, lerp, out_back, out_cubic, prog
+from ..ease import in_out, lerp, out_back, out_cubic, prog, punch
 from . import scene
 
 
@@ -33,7 +33,9 @@ def stat(c, t, s):
     v = s["value"] * in_out(prog(t, 0.2, 1.1))
     shown = f'{s.get("prefix", "")}{_num(v, s.get("decimals", 0), s.get("commas", False))}{s.get("suffix", "")}'
     c.text(c.cx, c.Y(520) if not c.wide else c.H * .16, c.fit(s.get("title", ""), "mono", 36), "mono", 36, "muted", prog(t, 0.1, .4))
-    c.text(c.cx, c.Y(700) if not c.wide else c.H * .26, shown, "bold", s.get("size", 300), "accent", prog(t, 0.2, .3))
+    ny = c.Y(700) if not c.wide else c.H * .26
+    c.glow(c.cx, ny + c.S(s.get("size", 300)) * 0.5, c.S(s.get("size", 300)) * 1.6, "accent", 0.16 * prog(t, 0.2, .6))
+    c.text(c.cx, ny, shown, "bold", s.get("size", 300), "accent", prog(t, 0.2, .3), scale=punch(t, 1.3, 0.3, 0.05))
     q = prog(t, 1.3, .6)
     c.text(c.cx, c.Y(1120) if not c.wide else c.H * .72, c.fit(s.get("caption", ""), "bold", 54), "bold", 54, "fg", q, dy=(1 - q) * c.S(30))
     _source(c, s, t)
@@ -136,7 +138,7 @@ def compare(c, t, s):
         card = s[key]; p = out_cubic(prog(t, 0.3 + k * 0.4, 0.6)); b = boxes[k]
         p *= 1.0 if k else 1.0 - 0.45 * in_out(prog(t, 1.6, 0.5))      # the left card dims once the right one lands
         off = (1 - p) * c.S(80) * (-1 if k == 0 else 1)
-        c.rect((b[0] + (off if c.wide else 0), b[1] + (0 if c.wide else off), b[2] + (off if c.wide else 0), b[3] + (0 if c.wide else off)), "card", p, radius=c.S(30))
+        bx = (b[0] + (off if c.wide else 0), b[1] + (0 if c.wide else off), b[2] + (off if c.wide else 0), b[3] + (0 if c.wide else off)); c.shadow_rect(bx, c.S(30), c.S(28), 0.4 * p); c.rect(bx, "card", p, radius=c.S(30))
         c.rect((b[0], b[1], b[0] + c.S(14), b[3]), tone, p)
         x = b[0] + c.S(50); y = b[1] + c.S(36)
         c.text(x, y, card.get("title", ""), "bold", 52, "accent" if k else "muted", p, anchor="la")

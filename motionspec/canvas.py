@@ -6,7 +6,7 @@ from functools import lru_cache
 import numpy as np
 from PIL import Image, ImageChops, ImageDraw, ImageFilter
 
-from .theme import ThemeError, rgb
+from .theme import ThemeError, luminance, rgb
 
 SS = 3  # supersampling for shapes (box-filtered down)
 _COLORS = {"bg", "fg", "muted", "dim", "card", "accent", "accent_text", "positive", "negative"}
@@ -59,6 +59,7 @@ class Canvas:
         self.fmt, self.theme = fmt, theme
         self.W, self.H, self.u, self.wide, self.tall = fmt.W, fmt.H, fmt.u, fmt.wide, fmt.tall
         self.warnings = warnings if warnings is not None else []
+        self.light = luminance(theme.bg) > 0.5          # light themes get much softer shadows
         raw = _background(fmt.W, fmt.H, bg if bg and bg.startswith("#") else getattr(theme, bg or "bg"),
                           tuple(gradient) if gradient else None, round(theme.vignette, 3))
         self.img = Image.frombytes("RGB", (fmt.W, fmt.H), raw)
@@ -90,16 +91,21 @@ class Canvas:
         return m.width - 8, m.height - 8
 
     def text(self, x, y, s, kind="bold", size=64, color="fg", alpha=1.0, anchor="ma", dy=0, spacing=10,
-             shadow=0.0, scale=1.0, tracking=0.0):
+             shadow=0.0, scale=1.0, tracking=0.0, reveal=False):
         """Draw text. `size`/`spacing`/`dy` are design-sheet units except dy which is pixels. `shadow` 0..1 adds a soft drop shadow.
         Sub-pixel positions are honoured by resampling the cached mask, so slow slides do not jitter."""
         if alpha <= 0.004 or not s: return
         s = str(s); f = self.font(kind, self.S(size) * scale); sp = int(self.S(spacing))
         align = "center" if anchor[0] == "m" else ("right" if anchor[0] == "r" else "left")
         m, (ox, oy) = _text_mask(s, f, sp, anchor, align)
+        if reveal and dy > 0:                       # text rises out of an invisible line at the bottom of its final box
+            keep = int(m.height - dy)
+            if keep <= 0: return
+            m = m.crop((0, 0, m.width, keep))
         px, py = x + ox, y + dy + oy; ix, iy = math.floor(px), math.floor(py); fx, fy = px - ix, py - iy
         if fx > 0.02 or fy > 0.02:
             m = m.transform((m.width + 1, m.height + 1), Image.AFFINE, (1, 0, -fx, 0, 1, -fy), resample=Image.BILINEAR)
+        if shadow and self.light: shadow *= 0.22
         if shadow:
             key = (s, id(f), sp, anchor, round(fx, 1), round(fy, 1), int(self.S(10)))
             base = _SHADOWS.get(key)
@@ -165,8 +171,18 @@ class Canvas:
                                                  a0, a1, fill=255, width=max(1, int(width * SS))), color, alpha)
 
     def glow(self, x, y, r, color="accent", alpha=0.35):
-        """Soft radial glow (additive-looking) centred at x, y."""
-        g = _glow_sprite(int(r)); self._paste_l(g.point(lambda v: int(v * alpha)), int(x - g.width / 2), int(y - g.height / 2), self.col(color))
+        """Soft radial glow centred at x, y (cached per radius and alpha step)."""
+        g = _glow_scaled(max(8, int(r) // 4 * 4), int(round(min(1.0, alpha) * 40))); self._paste_l(g, int(x - g.width / 2), int(y - g.height / 2), self.col(color))
+
+    def shadow_rect(self, box, radius=0, blur=24, alpha=0.5, dy=12):
+        """Soft drop shadow under a rounded rectangle (call before drawing the rectangle)."""
+        b = max(2, int(blur)); pad = b * 2; x0, y0, x1, y1 = [int(v) for v in box]
+        w, h = x1 - x0 + pad * 2, y1 - y0 + pad * 2
+        if w <= 0 or h <= 0: return
+        q = 4; m = Image.new("L", (max(1, w // q), max(1, h // q)), 0)
+        ImageDraw.Draw(m).rounded_rectangle((pad // q, pad // q, (pad + x1 - x0) // q, (pad + y1 - y0) // q), radius=max(1, int(radius) // q), fill=int(255 * alpha))
+        m = m.filter(ImageFilter.GaussianBlur(max(1, b // q))).resize((w, h), Image.BILINEAR)
+        self._paste_l(m, x0 - pad, y0 - pad + int(dy), (0, 0, 0))
 
     # ---- images
     def paste_image(self, im, x, y, alpha=1.0, radius=0):
@@ -198,6 +214,11 @@ def _wrap_cached(s, font, max_w):
 
 
 _SHADOWS = {}
+
+
+@lru_cache(maxsize=96)
+def _glow_scaled(r, a40):
+    return _glow_sprite(r).point(lambda v: int(v * a40 / 40))
 
 
 @lru_cache(maxsize=32)

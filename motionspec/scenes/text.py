@@ -1,22 +1,49 @@
 """Text scenes: title, section, bullets, steps, quote, note."""
-from ..ease import in_out, out_back, out_cubic, prog, stagger
+from ..ease import in_out, out_back, out_cubic, prog, spring, stagger
 from . import scene
 
 
+def _tokens(line):
+    """'Make it *pop* today' -> [('Make', False), ('it', False), ('pop', True), ('today', False)] (asterisks mark emphasis)."""
+    out = []
+    for w in line.split():
+        em = w.startswith("*") and w.rstrip(".,!?;:").endswith("*") and len(w) > 2
+        out.append((w.replace("*", ""), em))
+    return out
+
+
 @scene("title", fields={"lines": (list, True), "accent": (int, False), "size": ((int, float), False), "kicker": (str, False),
-                        "subtitle": (str, False), "step": ((int, float), False)},
-       cues=lambda s: [(0.15 + i * 0.22, "tick") for i in range(len(s.get("lines", [])))],
-       desc="Big staggered headline. `lines`, optional `accent` (index drawn in the accent colour), `kicker`, `subtitle`.")
+                        "subtitle": (str, False), "step": ((int, float), False), "style": (str, False)},
+       cues=lambda s: [(0.15 + i * s.get("step", 0.22) * (1.5 if s.get("style") == "words" else 1), "tick") for i in range(len(s.get("lines", [])))],
+       desc="Big headline. `style`: lines (default) | words (each word springs in) | letters (kinetic). Use *asterisks* to colour a word with the accent.")
 def title(c, t, s):
-    size = s.get("size", 112); y = c.Y(560) if not c.wide else c.H * 0.30
-    if s.get("kicker"):
-        c.text(c.cx, y - c.S(110), s["kicker"], "mono", 36, "muted", prog(t, 0.0, 0.5))
-    for i, ln in enumerate(s["lines"]):
-        p = stagger(t, i, 0.15, s.get("step", 0.22), 0.55)
-        c.text(c.cx, y, c.wrap(ln, "bold", c.S(size), c.W * 0.9), "bold", size, "accent" if i == s.get("accent") else "fg", p, dy=(1 - p) * c.S(60))
-        y += c.S(size * 1.25) * (1 + c.wrap(ln, "bold", c.S(size), c.W * 0.9).count("\n"))
+    size = s.get("size", 112); y = c.Y(560) if not c.wide else c.H * 0.40; style = s.get("style", "lines"); step = s.get("step", 0.22)
+    px = c.S(size)
+    if s.get("kicker"): c.text(c.cx, y - c.S(110), s["kicker"], "mono", 36, "muted", prog(t, 0.0, 0.5))
+    n_word = 0
+    for i, raw in enumerate(s["lines"]):
+        toks = _tokens(raw); line = " ".join(w for w, _ in toks); wrapped = c.wrap(line, "bold", px, c.W * 0.9)
+        if style == "lines" and not any(em for _, em in toks):
+            p = stagger(t, i, 0.15, step, 0.55)
+            c.text(c.cx, y, wrapped, "bold", size, "accent" if i == s.get("accent") else "fg", min(1, p * 3), dy=(1 - p) * c.S(size * 0.9), reveal=True)
+            y += c.S(size * 1.25) * (1 + wrapped.count(chr(10))); continue
+        f = c.font("bold", px); space = f.getlength(" "); total = sum(f.getlength(w) for w, _ in toks) + space * (len(toks) - 1)
+        x = c.cx - total / 2
+        for w, em in toks:
+            col = "accent" if (em or i == s.get("accent")) else "fg"; wl = f.getlength(w)
+            if style == "letters":
+                lx = x
+                for j, ch in enumerate(w):
+                    k = spring(prog(t, 0.15 + (n_word + j * 0.35) * step * 0.5, 0.7), 0.5, 2.2)
+                    c.text(lx, y + (1 - k) * c.S(70), ch, "bold", size, col, min(1, k * 2), anchor="la", scale=0.7 + 0.3 * k)
+                    lx += f.getlength(ch)
+            else:
+                k = spring(prog(t, 0.15 + n_word * step * 0.6, 0.7), 0.5, 2.2)
+                c.text(x, y, w, "bold", size, col, min(1, k * 3), anchor="la", dy=(1 - min(1, k)) * px * 0.95, reveal=True)
+            x += wl + space; n_word += 1
+        y += c.S(size * 1.25)
     if s.get("subtitle"):
-        c.text(c.cx, y + c.S(30), c.fit(s["subtitle"], "reg", 48, 0.8), "reg", 48, "muted", prog(t, 0.9, 0.5))
+        c.text(c.cx, y + c.S(30), c.fit(s["subtitle"], "reg", 48, 0.8), "reg", 48, "muted", prog(t, 0.9 + n_word * 0.05, 0.5))
 
 
 @scene("section", fields={"number": ((int, str), False), "title": (str, True), "subtitle": (str, False)},
@@ -44,7 +71,7 @@ def bullets(c, t, s):
         else:
             c.dot(left, y + c.S(34), c.S(12) * p, "accent")
         x = left + c.S(70); w = c.W - x - c.W * 0.07
-        c.text(x, y, c.wrap(it["head"], "bold", c.S(54), w), "bold", 54, "fg", p, anchor="la", dy=(1 - p) * c.S(40))
+        c.text(x, y, c.wrap(it["head"], "bold", c.S(54), w), "bold", 54, "fg", min(1, p * 3), anchor="la", dy=(1 - p) * c.S(50), reveal=True)
         if it.get("sub"):
             c.text(x, y + c.S(76), c.wrap(it["sub"], "reg", c.S(36), w), "reg", 36, "muted", p, anchor="la", dy=(1 - p) * c.S(40))
         y += step
@@ -77,7 +104,7 @@ def note(c, t, s):
     body = c.wrap(s["text"], "bold", c.S(74), w); sub = c.wrap(s["small"], "reg", c.S(36), w) if s.get("small") else ""
     h = c.S(190) + (body.count("\n") + 1) * c.S(92) + ((sub.count("\n") + 1) * c.S(48) + c.S(40) if sub else 0)
     y0 = c.H / 2 - h / 2
-    c.rect((x0, y0, x1, y0 + h), "card", radius=c.S(36)); c.rect((x0, y0, x0 + c.S(16), y0 + h), "accent")
+    c.shadow_rect((x0, y0, x1, y0 + h), c.S(36), c.S(30), 0.45 * p); c.rect((x0, y0, x1, y0 + h), "card", radius=c.S(36)); c.rect((x0, y0, x0 + c.S(16), y0 + h), "accent")
     if s.get("kicker"): c.text(x0 + c.S(70), y0 + c.S(40), s["kicker"], "mono", 34, "accent", p, anchor="la")
     c.text(x0 + c.S(70), y0 + c.S(110), body, "bold", 74, "fg", p, anchor="la", dy=(1 - p) * c.S(30))
     if sub: c.text(x0 + c.S(70), y0 + c.S(130) + (body.count("\n") + 1) * c.S(92), sub, "reg", 36, "muted", prog(t, 1.0, .5), anchor="la")

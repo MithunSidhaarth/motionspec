@@ -1,0 +1,26 @@
+{
+  "spec_version": 1,
+  "id": "ad_skill",
+  "kind": "ad",
+  "format": "portrait",
+  "theme": "themes/motionspec.json",
+  "look": "soft",
+  "motion": "calm",
+  "transition": "push",
+  "scenes": [
+    {"type": "title", "dur": 3.4, "style": "words", "kicker": "THE MOTIONSPEC SKILL", "lines": ["Ask Claude", "for *a video*."]},
+    {"type": "code", "dur": 5.6, "title": "In Claude Code", "cps": 28, "highlight": [3],
+     "lines": ["you:     Make a 20 second ad for my reporting app.", "claude:  Who is it for, and what is the one claim?", "you:     Founders. Reports take ten minutes.", "claude:  On it. Spec written, checked, previewed."]},
+    {"type": "steps", "dur": 5.4, "title": "Four questions. That's all.", "steps": [
+      {"head": "What is the product?"}, {"head": "Who is it for?"}, {"head": "What is the one claim?"}, {"head": "What should they do next?"}]},
+    {"type": "bullets", "dur": 5.6, "title": "Then it does the work", "numbered": true, "items": [
+      {"head": "Writes the video spec", "sub": "Scenes, text and your brand."},
+      {"head": "Checks it", "sub": "Exact errors, content rules."},
+      {"head": "Shows a preview", "sub": "Every scene on one sheet."},
+      {"head": "Renders every format", "sub": "With music and captions."}]},
+    {"type": "device", "dur": 4.4, "kind": "phone", "src": "ad_assets/contact_ad.png", "caption": "Preview before you render.", "pan": [0.5, 0.2, 0.5, 0.7]},
+    {"type": "stat", "dur": 3.6, "title": "ONE REQUEST", "value": 4, "suffix": " formats", "size": 220, "caption": "9:16, 4:5, 1:1 and 16:9"},
+    {"type": "note", "dur": 4.2, "kicker": "YOU STAY IN CHARGE", "text": "Nothing is published without your OK.", "small": "Approval for every post. No auto-posting."},
+    {"type": "endcard", "dur": 4.6, "button": "Get the skill", "ask": "Free to try. Works in Claude Code."}
+  ]
+}

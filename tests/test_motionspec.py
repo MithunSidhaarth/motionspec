@@ -136,6 +136,60 @@ class CliLint(unittest.TestCase):
             s["approved_facts"] = ["a"]; self.assertEqual(policy.lint(s, {"facts_file": "f.json"}, d)[0], [])
 
 
+class Align(unittest.TestCase):
+    def test_sentences_snap_to_speech_segments(self):
+        import wave
+        import numpy as np
+        from motionspec import align
+        sr = 48000; tt = lambda d: np.arange(int(d * sr)) / sr
+        burst = lambda d, f: 0.4 * np.sin(2 * np.pi * f * tt(d)) * (0.6 + 0.4 * np.sin(2 * np.pi * 4 * tt(d)))
+        sil = lambda d: np.zeros(int(d * sr))
+        a = np.concatenate([sil(0.3), burst(1.5, 180), sil(0.6), burst(1.2, 200), sil(0.6), burst(1.8, 170), sil(0.3)])
+        with tempfile.TemporaryDirectory() as d:
+            p = os.path.join(d, "v.wav")
+            with wave.open(p, "wb") as w: w.setnchannels(1); w.setsampwidth(2); w.setframerate(sr); w.writeframes((a * 32767).astype(np.int16).tobytes())
+            words = "Describe the video in text. Check before you render. Then get an MP4 out.".split()
+            out = align.heuristic(p, words)
+        self.assertEqual(len(out), len(words))
+        for idx, (t0, t1) in ((0, (0.30, 1.80)), (5, (2.40, 3.60)), (9, (4.20, 6.00))):          # first word of each sentence
+            self.assertAlmostEqual(out[idx]["t0"], t0, delta=0.08, msg=out[idx])
+        self.assertAlmostEqual(out[-1]["t1"], 6.0, delta=0.08)
+
+
+class Music(unittest.TestCase):
+    def test_generated_music_is_deterministic_and_sane(self):
+        import numpy as np
+        from motionspec import music
+        for mood in music.MOODS:
+            a = music.generate(6, mood, "t"); self.assertEqual(len(a), 6 * 48000); self.assertTrue(np.isfinite(a).all())
+            self.assertLess(float(np.abs(a).max()), 0.8); self.assertGreater(float(np.sqrt((a ** 2).mean())), 0.05)
+        self.assertTrue(np.array_equal(music.generate(4, "calm", "x"), music.generate(4, "calm", "x")))
+        self.assertFalse(np.array_equal(music.generate(4, "calm", "x"), music.generate(4, "calm", "y")))
+
+    def test_music_option_resolution_and_validation(self):
+        from motionspec.render import Project
+        self.assertEqual(Project._music({"kind": "ad", "id": "a"})["mood"], "upbeat")
+        self.assertEqual(Project._music({"kind": "explainer"})["mood"], "calm")
+        self.assertIsNone(Project._music({"music": "off"}))
+        self.assertTrue(validate(spec(music={"mood": "nope"})))
+        self.assertEqual(validate(spec(music={"mood": "warm", "db": -6})), [])
+
+    def test_every_render_has_an_audio_track_by_default(self):
+        with tempfile.TemporaryDirectory() as d:
+            s = os.path.join(d, "s.json"); json.dump({"format": "square", "scenes": [{"type": "title", "dur": 1.2, "lines": ["Hi"]}]}, open(s, "w"))
+            r = subprocess.run([sys.executable, "-m", "motionspec", "render", s, "-o", os.path.join(d, "o.mp4"), "--jobs", "2"], cwd=ROOT, capture_output=True, text=True)
+            self.assertEqual(r.returncode, 0, r.stderr)
+            info = subprocess.run(["ffprobe", "-v", "error", "-show_entries", "stream=codec_type", "-of", "csv=p=0", os.path.join(d, "o.mp4")], capture_output=True, text=True).stdout
+            self.assertIn("audio", info)
+
+
+class Quickstart(unittest.TestCase):
+    def test_quickstart_example_renders(self):
+        with tempfile.TemporaryDirectory() as d:
+            files, _ = stills(os.path.join(EX, "quickstart", "spec.json"), [1.0, 6.0, 11.0], d)
+            self.assertEqual(len(files), 3)
+
+
 class Captions(unittest.TestCase):
     def test_build_and_srt(self):
         caps = captions.build([{"dur": 4, "say": "one two three four five six seven eight nine"}], max_words=5)

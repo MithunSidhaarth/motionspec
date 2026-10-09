@@ -13,7 +13,7 @@ import os
 
 REGISTRY = {}
 COMMON = {"type": (str, True), "dur": ((int, float), True), "bg": (str, False), "gradient": (list, False),
-          "say": (str, False), "id": (str, False), "camera": (dict, False), "transition": (str, False), "comment": (str, False)}
+          "say": (str, False), "id": (str, False), "camera": (dict, False), "transition": (str, False), "comment": (str, False), "backdrop": (str, False)}
 
 
 def scene(name, fields=None, cues=None, desc=""):

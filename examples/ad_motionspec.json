@@ -1,0 +1,84 @@
+{
+  "spec_version": 1,
+  "id": "ad_motionspec",
+  "kind": "ad",
+  "format": "landscape",
+  "theme": "themes/motionspec.json",
+  "look": "soft",
+  "motion": "calm",
+  "scenes": [
+    {
+      "type": "title",
+      "dur": 3.2,
+      "style": "words",
+      "kicker": "MOTIONSPEC",
+      "lines": [
+        "Videos from *plain* text."
+      ]
+    },
+    {
+      "type": "strike",
+      "dur": 4.0,
+      "kicker": "MYTH VS FACT",
+      "wrong": "Video means timelines and keyframes.",
+      "right": "A video can be a text file."
+    },
+    {
+      "type": "code",
+      "dur": 5.5,
+      "title": "This is a video",
+      "cps": 30,
+      "highlight": [
+        4
+      ],
+      "lines": [
+        "{ \"format\": \"landscape\",",
+        "  \"scenes\": [",
+        "    {\"type\": \"title\", \"lines\": [\"Hello\"]},",
+        "    {\"type\": \"endcard\", \"button\": \"Try it\"} ] }"
+      ],
+      "say": "Describe scenes in JSON. Done."
+    },
+    {
+      "type": "device",
+      "dur": 4.5,
+      "kind": "browser",
+      "src": "ad_assets/contact.png",
+      "url": "motionspec preview spec.json",
+      "caption": "Preview every scene before you render."
+    },
+    {
+      "type": "stat",
+      "dur": 4.0,
+      "title": "ON ONE DESKTOP",
+      "value": 28,
+      "suffix": " s",
+      "caption": "to render 40 seconds of 1080p video, with music",
+      "source": "measured: 24-thread desktop, 10 workers"
+    },
+    {
+      "type": "bullets",
+      "dur": 5.0,
+      "title": "One spec. Every screen.",
+      "items": [
+        "Reel and story, 9:16",
+        "Feed ad, 4:5",
+        "Square",
+        "Landscape, 16:9"
+      ]
+    },
+    {
+      "type": "note",
+      "dur": 4.0,
+      "kicker": "BEFORE YOU RENDER",
+      "text": "Mistakes are caught with the exact line.",
+      "small": "Validation, brand checks and content rules run first."
+    },
+    {
+      "type": "endcard",
+      "dur": 4.5,
+      "button": "View on GitHub",
+      "ask": "Free to try. Python and ffmpeg."
+    }
+  ]
+}

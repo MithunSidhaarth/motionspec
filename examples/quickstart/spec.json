@@ -1,0 +1,11 @@
+{
+  "spec_version": 1,
+  "kind": "ad",
+  "format": "portrait",
+  "theme": "theme.json",
+  "scenes": [
+    {"type": "strike",  "dur": 3.5, "kicker": "MYTH VS FACT", "wrong": "Reports take all week", "right": "Reports take ten minutes"},
+    {"type": "device",  "dur": 5.0, "kind": "browser", "src": "assets/dashboard.png", "url": "acme.example/dashboard", "caption": "Everything in one place"},
+    {"type": "endcard", "dur": 4.0, "button": "Start free"}
+  ]
+}

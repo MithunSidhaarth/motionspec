@@ -1,0 +1,7 @@
+{
+  "extends": "signal",
+  "brand": "motionspec",
+  "tagline": "Describe the video. Get the MP4.",
+  "url": "github.com/MithunSidhaarth/motionspec",
+  "logo": "../ad_assets/logo.png"
+}

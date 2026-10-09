@@ -43,7 +43,7 @@ def cmd_render(a):
     fmts = ["reel", "portrait", "square", "landscape"] if a.format == "all" else [a.format]
     for f in fmts:
         out = a.out if len(fmts) == 1 else os.path.splitext(a.out)[0] + f"_{f}.mp4"
-        w = render_video(a.spec, out, fmt=f, jobs=a.jobs, crf=a.crf, blur=a.blur, sfx=not a.no_sfx, plugins=a.plugins or (), root=a.root, allow_abs=a.allow_abs_paths)
+        w = render_video(a.spec, out, fmt=f, jobs=a.jobs, crf=a.crf, blur=a.blur, sfx=not a.no_sfx, plugins=a.plugins or (), root=a.root, allow_abs=a.allow_abs_paths, music=not a.no_music)
         for x in w: print("  warning:", x)
     return 0
 
@@ -120,6 +120,17 @@ def cmd_autotime(a):
     d = autotime.durations(a.audio, a.scenes); print(json.dumps(d)); print(f"total {sum(d):.1f}s"); return 0
 
 
+def cmd_align(a):
+    from . import align
+    words = a.script.split() if not os.path.isfile(a.script) else open(a.script, encoding="utf-8").read().split()
+    out = align.align(a.audio, words, a.engine); print(json.dumps(out, indent=1)); return 0
+
+
+def cmd_serve(a):
+    from .serve import serve
+    serve(a.spec, a.port, a.format, tuple(a.plugins or ()), a.root, a.allow_abs_paths, not a.no_open); return 0
+
+
 def cmd_gallery(a):
     from .render import render_video
     ex = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "examples")
@@ -168,7 +179,7 @@ def build_parser():
         return s
     r = spec_cmd("render", cmd_render, "render the spec to an MP4", "out.mp4")
     r.add_argument("--jobs", type=int, help="worker processes (default: cores - 1)"); r.add_argument("--crf", type=int, default=18)
-    r.add_argument("--blur", type=int, help="motion-blur sub-frames (1 = off, 4-8 = smooth)"); r.add_argument("--no-sfx", action="store_true")
+    r.add_argument("--blur", type=int, help="motion-blur sub-frames (1 = off, 4-8 = smooth)"); r.add_argument("--no-sfx", action="store_true"); r.add_argument("--no-music", action="store_true", help="skip the automatic background music")
     s = spec_cmd("still", cmd_still, "render single frames as PNG", "stills"); s.add_argument("--times", default="1.5", help="comma-separated seconds")
     spec_cmd("preview", cmd_preview, "one still per scene on a contact sheet", "preview.png")
     v = sub.add_parser("validate", help="check a spec; prints every problem with its path"); v.add_argument("spec"); v.set_defaults(fn=cmd_validate)
@@ -178,6 +189,9 @@ def build_parser():
     n = sub.add_parser("new", help="scaffold a project folder"); n.add_argument("name"); n.add_argument("--kind", choices=sorted(TEMPLATES), default="explainer"); n.add_argument("--force", action="store_true"); n.set_defaults(fn=cmd_new)
     sr = sub.add_parser("srt", help="export captions as SRT"); sr.add_argument("spec"); sr.add_argument("-o", "--out", default="captions.srt"); sr.set_defaults(fn=cmd_srt)
     at = sub.add_parser("autotime", help="suggest scene durations from a voiceover's pauses"); at.add_argument("audio"); at.add_argument("--scenes", type=int, required=True); at.set_defaults(fn=cmd_autotime)
+    al = sub.add_parser("align", help="word timings for a script against a voiceover"); al.add_argument("audio"); al.add_argument("script", help="text or a .txt file")
+    al.add_argument("--engine", choices=["auto", "heuristic", "whisper"], default="auto"); al.set_defaults(fn=cmd_align)
+    sv = spec_cmd("serve", cmd_serve, "live preview in the browser (scrub, play, switch format; reloads on save)"); sv.add_argument("--port", type=int, default=8765); sv.add_argument("--no-open", action="store_true")
     g = sub.add_parser("gallery", help="render every example"); g.add_argument("-o", "--out", default="gallery"); g.set_defaults(fn=cmd_gallery)
     d = sub.add_parser("doctor", help="check your setup and explain any problem"); d.set_defaults(fn=cmd_doctor)
     return p

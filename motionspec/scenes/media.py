@@ -83,7 +83,7 @@ def clip(c, t, s):
 
 
 @scene("code", fields={"title": (str, False), "lines": (list, True), "cps": ((int, float), False), "highlight": (list, False)},
-       cues=lambda s: [(0.3, "tick")], desc="Typewriter code or terminal block. `lines`, characters/second `cps`, `highlight` line numbers (1-based).")
+       cues=lambda s: [(0.4 + k * 0.09, "key") for k in range(min(40, sum(len(str(x)) for x in s.get("lines", [])) // 2))], desc="Typewriter code or terminal block. `lines`, characters/second `cps`, `highlight` line numbers (1-based).")
 def code(c, t, s):
     lines = [str(x) for x in s["lines"]]
     if not lines: return
@@ -91,7 +91,7 @@ def code(c, t, s):
     x0, x1 = c.W * 0.06, c.W * 0.94; size = 34; lh = c.S(size * 1.55)
     h = lh * len(lines) + c.S(150); y0 = c.H / 2 - h / 2
     if s.get("title"): c.text(c.cx, y0 - c.S(110), c.fit(s["title"], "bold", 56, 0.86), "bold", 56, "fg", prog(t, 0.1, .4))
-    c.rect((x0, y0, x1, y0 + h), "card", radius=c.S(26))
+    c.shadow_rect((x0, y0, x1, y0 + h), c.S(26), c.S(30), 0.5, c.S(16)); c.rect((x0, y0, x1, y0 + h), "card", radius=c.S(26))
     for k, col in enumerate(("negative", "accent", "positive")): c.dot(x0 + c.S(40 + k * 36), y0 + c.S(42), c.S(10), col)
     hl = set(s.get("highlight", [])); y = y0 + c.S(90); left = chars; max_w = x1 - x0 - c.S(80)
     for i, ln in enumerate(lines):
@@ -104,3 +104,28 @@ def code(c, t, s):
             c.rect((x0 + c.S(40) + min(w, max_w) + c.S(4), y + c.S(4), x0 + c.S(40) + min(w, max_w) + c.S(22), y + lh - c.S(10)), "accent")
         y += lh
         if left < 0: break
+
+
+@scene("device", fields={"src": (str, True), "kind": (str, False), "url": (str, False), "caption": (str, False),
+                         "zoom": ((int, float), False), "pan": (list, False)},
+       cues=lambda s: [(0.1, "swish")],
+       desc="Screenshot inside a browser window (`kind`: browser, default on wide) or phone (`kind`: phone, default on tall) frame, with a slow push-in.")
+def device(c, t, s):
+    src = _open(paths.resolve(s["src"], "device.src")); kind = s.get("kind", "browser" if c.wide else "phone")
+    p = out_cubic(prog(t, 0.05, 0.7)); k = in_out(prog(t, 0, 6.0)); z = lerp(1.0, s.get("zoom", 1.06), k); pan = s.get("pan", [0.5, 0.3, 0.5, 0.5])
+    if kind == "phone":
+        h = c.H * 0.66; w = h * 0.49; x0 = c.cx - w / 2; y0 = c.H * 0.1 + (1 - p) * c.S(80)
+        c.shadow_rect((x0 - c.S(14), y0 - c.S(14), x0 + w + c.S(14), y0 + h + c.S(14)), c.S(70), c.S(40), 0.6 * p, c.S(22))
+        c.rect((x0 - c.S(14), y0 - c.S(14), x0 + w + c.S(14), y0 + h + c.S(14)), "card", p, radius=c.S(70))
+        c.rect((x0 - c.S(14), y0 - c.S(14), x0 + w + c.S(14), y0 + h + c.S(14)), "dim", p * 0.5, radius=c.S(70))
+        crop = _cover(src, int(w), int(h), z, lerp(pan[0], pan[2], k), lerp(pan[1], pan[3], k))
+        c.paste_image(crop, x0, y0, p, c.S(56)); c.rect((c.cx - c.S(70), y0 + c.S(14), c.cx + c.S(70), y0 + c.S(40)), "card", p, radius=c.S(14))
+    else:
+        w = c.W * (0.8 if c.wide else 0.9); bar = c.S(70); h = c.H * (0.72 if c.wide else 0.5); x0 = c.cx - w / 2; y0 = c.H * (0.1 if c.wide else 0.16) + (1 - p) * c.S(70)
+        c.shadow_rect((x0, y0, x0 + w, y0 + bar + h), c.S(26), c.S(34), 0.55 * p, c.S(18)); c.rect((x0, y0, x0 + w, y0 + bar + h), "card", p, radius=c.S(26))
+        for i, col in enumerate(("negative", "accent", "positive")): c.dot(x0 + c.S(40 + i * 34), y0 + bar / 2, c.S(9), col, p)
+        c.rect((x0 + c.S(180), y0 + bar * 0.2, x0 + w - c.S(40), y0 + bar * 0.8), "dim", p, radius=c.S(14))
+        if s.get("url"): c.text(x0 + c.S(210), y0 + bar * 0.28, s["url"], "mono", 26, "muted", p, anchor="la")
+        crop = _cover(src, int(w), int(h), z, lerp(pan[0], pan[2], k), lerp(pan[1], pan[3], k)); c.paste_image(crop, x0, y0 + bar, p, 0)
+        c.rect((x0, y0 + bar + h - c.S(26), x0 + w, y0 + bar + h), "card", p, radius=c.S(26))
+    if s.get("caption"): c.text(c.cx, c.H * (0.9 if c.wide else 0.82), c.fit(s["caption"], "bold", 50, 0.8), "bold", 50, "fg", prog(t, 0.6, .5), shadow=1)

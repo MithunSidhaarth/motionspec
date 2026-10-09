@@ -1,79 +1,236 @@
-# motionspec
+<p align="center">
+  <img src="docs/img/logo.png" width="88" alt="motionspec logo">
+</p>
 
-Describe a video in JSON. Get an MP4. Every frame is a pure function of time, so a video is a text file you can diff, validate, review and re-render for any screen shape.
+<h1 align="center">motionspec</h1>
+<p align="center"><b>Weekly product videos from a text file.</b><br>
+For solo founders and small teams who need explainers and ads in every screen shape, on brand, without opening an editor.</p>
 
-```
-spec.json  ->  validate  ->  preview (contact sheet)  ->  render (parallel)  ->  mp4 (+ srt)
-```
+<p align="center">
+  <img src="docs/media/motionspec_ad.gif" width="560" alt="The ad motionspec made for itself">
+</p>
+<p align="center"><sub>This ad was made by motionspec, from <a href="examples/ad_motionspec.json">one JSON file</a>. <a href="docs/media/motionspec_ad_landscape.mp4">Full-quality MP4</a> · <a href="docs/media/motionspec_ad_reel.mp4">9:16 version</a></sub></p>
 
-Made for solo founders and small teams who need credible, repeatable videos for several products: explainers, feed ads, reels and stories, product demos, data stories. One brand file per product; one spec re-flows to every format.
+> **Status: v0.1, a solo project.** It works and is tested (32 tests), but it is young. **Licence: source-available, not open source yet.** You can read and try it; reuse terms are not set. See [Licence](#licence).
 
-## Quick start
+---
 
-```bash
-pip install -e .            # needs Python 3.10+, ffmpeg on PATH
-motionspec doctor           # plain-English check of your setup
-motionspec new my-video --kind explainer     # explainer | ad | reel | demo
-motionspec preview my-video/spec.json -o my-video/preview.png
-motionspec render  my-video/spec.json -o my-video/out.mp4
-motionspec render  my-video/spec.json --format all -o my-video/out.mp4   # reel, 4:5, square, landscape
-```
+## What it is
 
-A 40 s 1080p video with sound renders in about half a minute on a laptop, because frames are independent and are drawn in parallel.
-
-## What a spec looks like
+You write a short JSON file that lists scenes: a headline, a screenshot in a browser frame, a chart, a button. motionspec draws every frame and encodes an MP4 with sound. The same file renders as a 9:16 reel, a 4:5 feed ad, a square post or a 16:9 video.
 
 ```json
 {
-  "spec_version": 1, "kind": "ad", "format": "portrait", "theme": "theme.json",
+  "format": "portrait",
+  "theme": "theme.json",
   "scenes": [
-    {"type": "strike", "dur": 3.5, "wrong": "Reports take all week", "right": "Reports take ten minutes"},
-    {"type": "image",  "dur": 5,   "src": "assets/dashboard.png", "caption": "Everything in one place", "camera": {"zoom": [1, 1.05]}},
-    {"type": "endcard","dur": 4,   "button": "Start free"}
+    {"type": "strike",  "dur": 3.5, "wrong": "Reports take all week", "right": "Reports take ten minutes"},
+    {"type": "device",  "dur": 5,   "src": "assets/dashboard.png", "kind": "browser", "caption": "Everything in one place"},
+    {"type": "endcard", "dur": 4,   "button": "Start free"}
   ]
 }
 ```
 
-- **Scenes:** `title`, `section`, `bullets`, `steps`, `quote`, `note`, `slam`, `strike`, `stat`, `bars`, `chart`, `grid`, `compare`, `timeline`, `image`, `clip`, `code`, `endcard`. Run `motionspec scenes` for every field.
-- **Themes:** colours, fonts, logo, brand name and tagline are data (`theme.json`, or a built-in: `midnight`, `paper`, `signal`). The engine hardcodes no brand.
-- **Formats:** `reel`, `story`, `portrait` (4:5), `square`, `landscape`, `landscape4k`, or any even `WxH`.
-- **Sound:** generated cues, optional voiceover and music bed (ducked under speech), loudness-normalised. `autotime` snaps scene lengths to the pauses in a voiceover; `say` text becomes captions and an `.srt`.
-- **Finish:** per-scene camera (zoom, pan, drift), optional motion blur, bloom and grain.
+That is a real, runnable example: [`examples/quickstart`](examples/quickstart). Brand colours, logo and name live in `theme.json`, so the next product gets the same pipeline with a different file.
 
-## Why you can trust it
+**Don't want to write JSON?** Use it with Claude. The included [skill](skill/motionspec) asks four questions (product, audience, claim, action), writes and checks the file, shows you a preview, renders, drafts the post, and waits for your OK before anything is published.
 
-- **Validation with paths:** `scenes[2] (bars).items[0].value: negative values are not supported`, with "did you mean" suggestions. `motionspec schema` exports a JSON Schema for editors and LLMs.
-- **Policy as data:** `motionspec lint` enforces your own rules (banned words, required disclaimers, numbers that must come from a facts file) from a `policy.json`.
-- **Sandboxed files:** a spec can only read inside its project folder; URLs and ffmpeg protocols are rejected.
-- **Deterministic:** the same spec and frame always give the same pixels (tested). Text that would leave the safe area is reported.
-- **Tested:** `python -m unittest discover -s tests` (24 tests: easing, validation, sandbox, policy, rendering in every format, end to end MP4).
+## Quick start
 
-## Extend it
+**1. Prerequisites** (once): Python 3.10+ and ffmpeg.
+
+| | Python | ffmpeg |
+|---|---|---|
+| Windows | [python.org](https://www.python.org/downloads/) | `winget install Gyan.FFmpeg` |
+| macOS | `brew install python` | `brew install ffmpeg` |
+| Linux | `sudo apt install python3-pip` | `sudo apt install ffmpeg` |
+
+**2. Install and check:**
+
+```bash
+pip install git+https://github.com/MithunSidhaarth/motionspec
+python -m motionspec doctor        # tells you in plain English what, if anything, to fix
+```
+
+**3. Make your first video** (with the quickstart files from this repo):
+
+```bash
+git clone https://github.com/MithunSidhaarth/motionspec && cd motionspec
+python -m motionspec preview examples/quickstart/spec.json -o preview.png   # one frame per scene
+python -m motionspec render  examples/quickstart/spec.json -o ad.mp4
+```
+
+Start your own with `python -m motionspec new my-video --kind ad` (kinds: `explainer`, `ad`, `reel`, `demo`). Watch while you edit: `python -m motionspec serve my-video/spec.json` opens a live preview with a scrubber that reloads when you save.
+
+> Used to Canva? Think of each scene as a template slide whose text, colours and size come from files you control. The difference: your whole video is one small file you can copy, version and re-render for any format in seconds, and your brand and content rules are enforced for you.
+
+## Why use it
+
+| You want | motionspec gives you |
+|---|---|
+| **Speed** | Edit a line, re-render. A 40 s, 1080p video with sound and music took 28 s on a 24-thread desktop ([how to measure](#performance)). |
+| **Every screen** | One spec for 9:16, 4:5, 1:1 and 16:9. Text stays out of the areas platforms cover with UI. |
+| **On brand, every time** | Colours, fonts, logo, name, tagline in one theme file. |
+| **No embarrassing mistakes** | `validate` catches errors with the exact place and a fix. `lint` enforces *your* rules: banned words, required disclaimers, numbers that must come from a facts file. |
+| **Repeatable** | Same spec on the same machine gives identical frames. Keep videos in git and see what changed. |
+| **Assistant-ready** | A JSON Schema is generated from the scenes, so an AI assistant can write specs that validate first time. |
+
+## Scene gallery
+
+Nineteen scene types. Every one re-flows to every format.
+
+![Every scene type](docs/img/scene_gallery.png)
+
+| Group | Scenes |
+|---|---|
+| Text | `title` (lines, words or letters spring in; `*emphasis*` turns a word accent-coloured), `section`, `bullets`, `steps`, `quote`, `note` |
+| Impact | `slam` (a full-frame word per beat), `strike` (myth vs fact with a pen stroke) |
+| Data | `stat` (a counting number), `bars`, `chart` (animated line), `grid` ("x of y" dots), `compare`, `timeline` |
+| Media | `image` (slow push-in), `device` (browser or phone frame), `clip` (video), `code` (typewriter) |
+| Brand | `endcard` (logo, name, tagline, pulsing button, URL, all from the theme) |
+
+Not everything is dark: the same scenes under the light `paper` theme.
+
+![Light theme example](docs/img/paper_example.png)
+
+`python -m motionspec scenes` prints every field. Data scenes take `"source": "..."` for an on-screen source line.
+
+## Formats
+
+| `format` | Size | Use |
+|---|---|---|
+| `reel`, `story`, `short` | 1080x1920 | Reels, Stories, Shorts, TikTok |
+| `portrait` | 1080x1350 | Instagram and Facebook feed ads |
+| `square` | 1080x1080 | LinkedIn and general feed |
+| `landscape` | 1920x1080 | YouTube, LinkedIn, websites |
+| `landscape4k` | 3840x2160 | Large screens |
+| any even `WxH` | e.g. `1280x720` | Anything else |
+
+`render --format all` makes the first four in one go.
+
+## Your brand
+
+```json
+{ "extends": "midnight", "brand": "Acme", "tagline": "Reports without the busywork.",
+  "url": "acme.com", "logo": "assets/logo.png", "accent": "#FFB020" }
+```
+
+Built-in themes: `midnight`, `paper`, `signal`. Your own images (screenshots, logos) go in the project's `assets/` folder and are referenced by relative path, as in the quickstart.
+
+**Looks and motion** (top of the spec): every scene sits on a slow animated backdrop (`"backdrop": "orbs" | "grid" | "dots" | "none"`), cards get soft shadows, and scenes change with a `transition` (`fade`, `push`, `wipe`, `zoom`, `cut`). `"look": "clean" | "soft" | "film" | "neon"` adds bloom, moving film grain and chromatic aberration; `"motion": "none" | "calm" | "lively"` gives every scene a gentle camera. Any scene can set its own `"camera": {"zoom": [1, 1.08], "pan": [0, 0, .1, 0], "drift": 0.4}`. `--blur 4` averages sub-frames for smoother movement.
+
+## Sound, voiceover and captions
+
+- **Background music is automatic.** Every render gets an original track composed in code for the video's kind (a lively one for ads and reels, a calm one for explainers, a warm one for demos), ducked under any voiceover. Pick a mood with `"music": {"mood": "warm", "db": -6}` (moods: calm, warm, upbeat, tense, minimal), use your own file with `"music": "assets/bed.mp3"`, or turn it off with `"music": "off"` or `--no-music`. The tracks are generated, so there are no sample files or licences; they are pleasant bed music, not a composer's work.
+- **Sound effects are built in**: 13 generated sounds (tick, key, click, pop, whoosh, swish, rise, riser, thud, impact, stamp, chime, success), cued by the scenes, no sample files or licences. Add your own: `"cues": [{"t": 4.2, "sound": "impact"}]`.
+- **Voiceover and music**: `"voiceover": "assets/vo.mp3"`, `"music": {"src": "assets/bed.mp3", "db": -22}`. Effects and music dip under speech, and the mix is normalised to about -14 LUFS. motionspec does not generate speech; bring a recording or any text-to-speech.
+- **Captions that follow the words**: write what is said in each scene's `say`, set `"align": true`, and motionspec places every word on the voiceover, cuts each scene right after its last word, and draws captions. `"captions_style": "karaoke"` highlights each word as it is spoken. Placement is an estimate from ffmpeg silence detection (verified against a test file with known timings); install `faster-whisper` and it uses real word timestamps instead.
+- `motionspec srt spec.json` exports subtitles. `motionspec autotime vo.mp3 --scenes 5` prints scene lengths that follow your pauses.
+
+## Safety rails
+
+```text
+$ motionspec validate spec.json
+error: scenes[2] (bars).items[0].value: negative values are not supported
+error: scenes[4] (stat).captoin: unknown field. Did you mean 'caption'?
+```
+
+- **Validation** lists every problem with its path and a "did you mean". `motionspec schema -o spec.schema.json` exports a JSON Schema for editors and assistants.
+- **Policy as data.** `motionspec lint` applies a `policy.json` you own:
+
+  ```json
+  { "banned": ["guaranteed"], "required_any": ["terms apply"], "facts_file": "facts.json",
+    "kinds": {"ad": [6, 30]}, "require_last": "endcard" }
+  ```
+
+  Numbers of 10 and above on screen must appear in the facts the spec cites (small counters are exempt), and a fact marked `"restricted": true` needs explicit `approved_facts`. It checks words and numbers; it is not a substitute for reading your own video.
+- **File sandbox.** A spec can read only files inside its project folder; URLs and ffmpeg protocols are rejected.
+- **Clear failures.** Errors name the scene and time (`scenes[3] (chart) at 12.40s: ...`). A missing font stops the render instead of drawing tiny text.
+- **Tests.** `python -m unittest discover -s tests` runs 32 tests covering easing, validation, the sandbox, policy, captions, word alignment, every scene in several formats, determinism on one machine, and an end-to-end MP4.
+
+## CLI reference
+
+| Command | What it does |
+|---|---|
+| `render spec.json -o out.mp4` | Render. `--format all`, `--jobs N`, `--blur N`, `--crf N`, `--no-sfx` |
+| `preview spec.json -o preview.png` | One frame per scene on a labelled contact sheet |
+| `still spec.json --times 1.5,6` | Single frames as PNG |
+| `serve spec.json` | Live preview in the browser, reloads on save |
+| `validate spec.json` | Check the spec |
+| `lint spec.json` | Check content rules from a policy file |
+| `scenes` | List scene types and fields |
+| `schema` | Print or save the JSON Schema |
+| `new NAME --kind ad` | Scaffold a project |
+| `srt spec.json` | Export captions |
+| `align vo.mp3 "script text"` | Word timings for a script |
+| `autotime vo.mp3 --scenes N` | Scene lengths from voiceover pauses |
+| `gallery` | Render every example |
+| `doctor` | Check your setup and explain any problem |
+
+Top-level spec keys: `spec_version`, `id`, `kind`, `format`, `theme`, `look`, `motion`, `scenes`, `captions`, `captions_style`, `voiceover`, `music`, `align`, `autotime`, `cues`, `facts`, `approved_facts`, `policy`, `blur`, `post`, `fps`. Every scene takes `type` and `dur`, plus `bg`, `gradient`, `camera`, `transition` (`"cut"`) and `say`. Full reference: [`spec-reference.md`](skill/motionspec/references/spec-reference.md).
+
+## Write your own scene
 
 ```python
-# my_scenes/badge.py  ->  motionspec render spec.json --plugins my_scenes
+# my_scenes/badge.py     ->     motionspec render spec.json --plugins my_scenes
 from motionspec.scenes import scene
 
 @scene("badge", fields={"text": (str, True)}, cues=lambda s: [(0.1, "pop")], desc="A pill with text.")
 def badge(c, t, s):
-    c.rect((c.W*0.3, c.H*0.45, c.W*0.7, c.H*0.55), "accent", radius=c.S(60))
-    c.text(c.cx, c.H*0.47, s["text"], "bold", 56, "accent_text")
+    c.rect((c.W * .3, c.H * .45, c.W * .7, c.H * .55), "accent", radius=c.S(60))
+    c.text(c.cx, c.H * .47, s["text"], "bold", 56, "accent_text")
 ```
 
-Plugins run arbitrary Python: load only code you trust, and only via `--plugins`, never from a spec.
+A scene is `draw(canvas, t, spec)`: the canvas gives anti-aliased shapes, measured text wrapping, theme colours and the safe area. Plugins run arbitrary Python, so load only code you trust, and only with `--plugins`, never from a spec.
 
-## Claude skill
+## How it works
 
-`skill/motionspec` teaches Claude the workflow (brief, facts, spec, validate, preview, render, post pack, your approval). Copy it to `~/.claude/skills/`.
+```
+spec.json ─▶ validate ─▶ Project (theme, timeline, captions, audio) ─▶ frames drawn in parallel ─▶ ffmpeg ─▶ mp4
+                                   │                                        ▲
+                                   └─ scenes: draw(canvas, t, spec) ────────┘    camera → transition → captions → look
+```
 
-## When not to use it
+Frames are independent, so separate processes draw them and stream them in order into one ffmpeg. It is all CPU, Python, Pillow and numpy: no browser and no GPU.
 
-For hand-animated, one-off cinematic work, use After Effects or a real editor. motionspec is for videos that are mostly text, numbers, screenshots and clips that you want to make quickly and repeatably.
+## Performance
 
-## Status
+`motionspec render examples/explainer.json -o out.mp4` (40.5 s, 1920x1080, with sound and music) took 28 s on a 24-thread Windows desktop using 10 worker processes. Workers default to your cores minus one, capped at 10 and by free memory (about 0.7 GB each); set `--jobs N` to change it. `--blur 3` and the `film` look make frames slower, so expect roughly 2 to 3 times longer. Your numbers depend on your CPU and memory.
 
-Version 0.1. Fonts: the engine looks for system fonts and warns when it cannot find any; bundle an open-licence font in `motionspec/fonts/` for identical output on every machine. Licence: all rights reserved for now (see `LICENSE`).
+## Compared with other tools
+
+| | motionspec | Remotion (React) | After Effects | Canva / CapCut |
+|---|---|---|---|---|
+| Video is a text file you can diff | yes | yes (React code) | no | no |
+| Needs a browser or GPU to render | no | headless browser | desktop app | web or app |
+| One-file brand swap | theme file | build it yourself | manual | brand kits |
+| Content rules checked before render | built in (opt-in policy) | not built in | not built in | not built in |
+| One spec for several aspect ratios | yes | build it yourself | manual | resize tools |
+| Hand-directed cinematic look | no | possible | best | limited |
+| Edit by dragging | no | no | yes | yes |
+
+Based on each tool's public documentation as of October 2026; check before you decide.
+
+**Use something else when** you want a hand-animated cinematic film (After Effects), to drag and drop (Canva, CapCut), or full React components inside your video (Remotion). **Use motionspec when** your videos are mostly text, numbers, charts, screenshots and clips, and you need to make them often, in several shapes, without anything slipping through.
+
+## Limitations
+
+- **The look is clean and designed, not hand-directed.** There is bloom, grain, camera drift and kinetic type, but no 3D and no per-shot art direction.
+- **Fonts come from your system** unless you add a `.ttf` to `motionspec/fonts/` or the theme, so output can differ slightly between machines. Bundled open-licence fonts are on the roadmap.
+- **Hindi, Tamil, Arabic and other complex scripts** need a Pillow build with Raqm layout, which many installs lack. Test your language before relying on it.
+- **Word alignment** without `faster-whisper` is a close estimate, not a transcript.
+- **No text-to-speech.** Bring a voiceover.
+- **Platforms:** developed on Windows; a CI workflow for Windows and Linux is included but has not run yet. macOS is untested.
+- **Maturity:** version 0.1, one maintainer.
+
+## Roadmap
+
+Bundled open-licence fonts, a Raqm check in `doctor`, audio on `clip`, more themes, a PyPI release.
+
+## Licence
+
+Copyright (c) 2026 Mithun Sidhaarth A M. **All rights reserved for now.** The source is public so you can read and try it, but it is not yet licensed for reuse or redistribution; to use it commercially, ask first. This will change to an open-source licence once decided. See [`LICENSE`](LICENSE). Because of this, pull requests are not being accepted yet; issues and feedback are welcome.
 
 ## Acknowledgements
 
-The "video as code, locked to a voiceover" idea was inspired by the public *Motion as Code* starter guide. No code or assets from it are included; this is an independent implementation.
+The idea of "video as code, locked to a voiceover" was inspired by the public *Motion as Code* starter guide. No code or assets from it are included; this is an independent implementation.

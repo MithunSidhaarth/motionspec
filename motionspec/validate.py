@@ -6,10 +6,12 @@ from .layout import FORMATS
 from .scenes import COMMON, REGISTRY, load_builtin
 
 TOP = {"spec_version": (int, False), "id": (str, False), "kind": (str, False), "format": (str, False), "theme": ((str, dict), False),
-       "scenes": (list, True), "captions": (list, False), "voiceover": (str, False), "music": ((str, dict), False), "facts": (list, False), "approved_facts": (list, False),
+       "scenes": (list, True), "captions": (list, False), "voiceover": (str, False), "music": ((str, dict, bool), False), "facts": (list, False), "approved_facts": (list, False),
        "policy": (str, False), "autotime": (bool, False), "blur": (int, False), "post": (dict, False), "fps": (int, False),
-       "sfx": (bool, False), "comment": (str, False)}
+       "sfx": (bool, False), "comment": (str, False), "look": (str, False), "motion": (str, False),
+       "cues": (list, False), "align": (bool, False), "captions_style": (str, False), "backdrop": (str, False), "transition": (str, False)}
 KINDS = ("reel", "ad", "explainer", "demo", "general")
+TRANSITIONS = ("fade", "cut", "push", "wipe", "zoom")
 MAX_DUR, MAX_TOTAL = 600, 1800
 
 
@@ -42,6 +44,19 @@ def validate(spec):
     fmt = spec.get("format", "reel")
     if isinstance(fmt, str) and fmt not in FORMATS and "x" not in fmt: errs.append(f"format: unknown '{fmt}'.{_suggest(fmt, FORMATS)} Presets: {sorted(FORMATS)} or WIDTHxHEIGHT")
     if spec.get("kind") and spec["kind"] not in KINDS: errs.append(f"kind: '{spec['kind']}' not one of {KINDS}")
+    from .post import LOOKS, MOTION
+    if spec.get("look") and spec["look"] not in LOOKS: errs.append(f"look: unknown '{spec['look']}'.{_suggest(spec['look'], LOOKS)} Choose from {sorted(LOOKS)}")
+    if spec.get("motion") and spec["motion"] not in MOTION: errs.append(f"motion: unknown '{spec['motion']}'. Choose from {sorted(MOTION)}")
+    from .backdrop import STYLES
+    if spec.get("backdrop") and spec["backdrop"] not in STYLES: errs.append(f"backdrop: '{spec['backdrop']}' not one of {STYLES}")
+    if spec.get("transition") and spec["transition"] not in TRANSITIONS: errs.append(f"transition: '{spec['transition']}' not one of {TRANSITIONS}")
+    mu = spec.get("music")
+    if isinstance(mu, dict):
+        from .music import MOODS
+        if "mood" in mu and mu["mood"] not in MOODS: errs.append(f"music.mood: '{mu['mood']}' not one of {sorted(MOODS)}")
+        if "mood" not in mu and "src" not in mu: errs.append("music: give a mood (e.g. {\"mood\": \"warm\"}) or a file ({\"src\": \"bed.mp3\"})")
+    if mu is True: errs.append("music: use \"auto\" (default), \"off\", a mood object or a file path")
+    if spec.get("captions_style") and spec["captions_style"] not in ("plain", "karaoke"): errs.append("captions_style: use 'plain' or 'karaoke'")
     scenes = spec.get("scenes")
     if isinstance(scenes, list):
         if not scenes: errs.append("scenes: needs at least one scene")
@@ -57,6 +72,8 @@ def validate(spec):
                 if not _type_ok(v, fields[k][0]): errs.append(f"{name}.{k}: expected {_tname(fields[k][0])}, got {type(v).__name__}")
             for k, (_, req) in fields.items():
                 if req and k not in sc: errs.append(f"{name}.{k}: required")
+            if sc.get("transition") and sc["transition"] not in TRANSITIONS: errs.append(f"{name}.transition: '{sc['transition']}' not one of {TRANSITIONS}")
+            if sc.get("backdrop") and sc["backdrop"] not in STYLES: errs.append(f"{name}.backdrop: '{sc['backdrop']}' not one of {STYLES}")
             d = sc.get("dur")
             if _type_ok(d, (int, float)):
                 if not 0.3 <= d <= MAX_DUR: errs.append(f"{name}.dur: {d}s out of range (0.3 to {MAX_DUR})")

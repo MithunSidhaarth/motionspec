@@ -1,0 +1,7 @@
+{
+  "extends": "paper",
+  "brand": "Acme Reports",
+  "tagline": "Reports without the busywork.",
+  "url": "acme.example",
+  "logo": "assets/logo.png"
+}

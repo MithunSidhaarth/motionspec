@@ -71,6 +71,7 @@ class Theme:
     font_dirs: list = field(default_factory=list)
     grain: float = 0.0       # 0..1 film grain strength
     vignette: float = 0.0    # 0..1 edge darkening
+    backdrop: str = "orbs"   # none | orbs | grid | dots: slow animated depth behind every scene
     base_dir: str = "."
 
     def font(self, kind, size):

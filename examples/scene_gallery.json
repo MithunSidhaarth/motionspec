@@ -1,0 +1,23 @@
+{
+  "spec_version": 1, "id": "scene_gallery", "kind": "general", "format": "landscape", "theme": "themes/motionspec.json", "motion": "none",
+  "scenes": [
+    {"type": "title", "dur": 3, "style": "words", "kicker": "TITLE", "lines": ["Kinetic *headlines*."]},
+    {"type": "section", "dur": 3, "number": "02", "title": "Section card", "subtitle": "Chapter breaks"},
+    {"type": "bullets", "dur": 4, "title": "Bullets", "items": ["Builds item by item", "Dims nothing, hides nothing", "Wraps to any width"]},
+    {"type": "steps", "dur": 4, "title": "Steps", "steps": [{"head": "Write", "sub": "A spec"}, {"head": "Check", "sub": "Validate and lint"}, {"head": "Render", "sub": "In parallel"}]},
+    {"type": "quote", "dur": 4, "text": "Every edit is a diff.", "who": "Quote card", "role": "with attribution"},
+    {"type": "note", "dur": 4, "kicker": "NOTE", "text": "A callout for the line that matters.", "small": "Caveats, definitions, key terms."},
+    {"type": "slam", "dur": 3, "words": ["SLAM", "THE WORD"], "hold": 1.2},
+    {"type": "strike", "dur": 4, "kicker": "MYTH VS FACT", "wrong": "Old claim", "right": "Corrected claim"},
+    {"type": "stat", "dur": 4, "title": "STAT", "value": 1284, "commas": true, "caption": "A number that counts up"},
+    {"type": "bars", "dur": 4, "title": "Bars", "items": [{"label": "A", "value": 40}, {"label": "B", "value": 72, "accent": true}, {"label": "C", "value": 55}]},
+    {"type": "chart", "dur": 4, "title": "Line chart", "labels": ["Q1", "Q2", "Q3", "Q4"], "series": [{"label": "growth", "values": [12, 19, 31, 52]}]},
+    {"type": "grid", "dur": 5, "total": 120, "hit": 18, "title": "Proportion grid", "label_total": "records", "label_hit": "flagged"},
+    {"type": "compare", "dur": 4, "title": "Compare", "left": {"title": "Before", "items": ["Slow", "Manual"]}, "right": {"title": "After", "items": ["Fast", "Automatic"]}},
+    {"type": "timeline", "dur": 4, "title": "Timeline", "events": [{"when": "Day 1", "what": "Idea"}, {"when": "Day 3", "what": "Spec"}, {"when": "Day 4", "what": "Ship"}]},
+    {"type": "image", "dur": 4, "src": "assets/dashboard.png", "caption": "Image with a slow push-in"},
+    {"type": "device", "dur": 4, "kind": "browser", "src": "assets/dashboard.png", "url": "app.example.com", "caption": "Browser and phone frames"},
+    {"type": "code", "dur": 4, "title": "Code", "lines": ["$ motionspec render spec.json", "frames 360/360  done"], "highlight": [2]},
+    {"type": "endcard", "dur": 4, "button": "Endcard"}
+  ]
+}

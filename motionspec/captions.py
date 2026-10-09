@@ -1,12 +1,17 @@
 """Captions: build timed captions from each scene's `say` text, merge with explicit ones, export SRT."""
 
 
-def build(scenes, explicit=None, max_words=7, lead=0.25, tail=0.25):
+def build(scenes, explicit=None, max_words=7, lead=0.25, tail=0.25, word_times=None):
     """Split every scene's `say` into chunks of at most `max_words`, spread evenly over the scene. Returns [{t0, t1, text}]."""
-    caps, t = list(explicit or []), 0.0
+    caps, t, wi = list(explicit or []), 0.0, 0
     for sc in scenes:
         words = str(sc.get("say", "")).split(); d = sc["dur"]
-        if words:
+        if words and word_times:                       # exact timing from the aligner, with per-word times for karaoke highlighting
+            wt = word_times[wi: wi + len(words)]; wi += len(words)
+            for i in range(0, len(wt), max_words):
+                ch = wt[i:i + max_words]
+                caps.append({"t0": ch[0]["t0"], "t1": round(ch[-1]["t1"] + 0.12, 3), "text": " ".join(w["word"] for w in ch), "words": ch})
+        elif words:
             chunks = [words[i:i + max_words] for i in range(0, len(words), max_words)]
             span = max(0.5, d - lead - tail); total = sum(len(c) for c in chunks); at = t + lead
             for c in chunks:
